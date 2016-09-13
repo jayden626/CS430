@@ -6,17 +6,29 @@
 
 typedef unsigned char RGBpixel[3];
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
 	RGBpixel **pixmap;
+	FILE* input;
+	FILE* output;
+	int convertToNumber;
 	char magicNumber[8];
 	char tempInput[9];
 	int height;
 	int width;
 	int scale;
 	int count = 1;
-	
-	FILE* input = fopen("test3.data", "r");
-	if(input)
+
+	if(argc == 4){
+		convertToNumber = (int) strtol(argv[1],(char **)NULL,10);
+		input = fopen(argv[2], "r");
+		output = fopen(argv[3], "w");
+	}
+	else{
+		printf("ERROR: Wrong arguements");
+		return 1;
+	}
+
+	/*if(input)
 	printf("Hello world\n");
 
 	RGBpixel* pix = malloc(sizeof(char)*3);
@@ -28,13 +40,13 @@ int main(int argc, char *argv[]) {
 	printf("%c %c %c", *pix[0],*pix[1],*pix[2]);
 
 	height = (int) strtol("101",(char **)NULL,2);
-	printf("\nheight: %u\n",height);
+	printf("\nheight: %u\n",height);*/
 	//input = fopen("test2.data", "r");
 	//printf("here");
-	/*if(!input){
+	if(!input){
 		printf("TO STDERR: File not found");
 		return 1;
-	}*/
+	}
 
 	//Read magic number
 	fscanf(input,"%8s",magicNumber);
@@ -61,8 +73,9 @@ int main(int argc, char *argv[]) {
 
 	printf("%s and %u %u %u\n",magicNumber, width, height, scale);
 	if(strcmp(magicNumber,"P3") == 0 || strcmp(magicNumber,"P6") == 0){
-		readPPM(input, pixmap, width, height, scale);
+		readPPM(input, pixmap, magicNumber, width, height, scale);
 		printPixmap(pixmap, magicNumber, width, height, scale);
+		writePPM(output, pixmap, magicNumber, width, height, scale);
 	}
 	/*else if(strcmp(magicNumber,"P6") == 0){
 		//readP6(input);
@@ -81,7 +94,7 @@ int printPixmap(RGBpixel** map, char* magicNumber, int width, int height, int sc
 	int countColor = 0;
 	int maxPrintWidth = 3;
 
-	printf("%s\n%u %u\n%u\n", magicNumber, width, height, scale);
+	//printf("%s\n%u %u\n%u\n", magicNumber, width, height, scale);
 	for(countHeight; countHeight<height; countHeight++){
 		countWidth = 0;
 		for(countWidth; countWidth<width; countWidth++){
@@ -96,7 +109,30 @@ int printPixmap(RGBpixel** map, char* magicNumber, int width, int height, int sc
 	return 0;
 }
 
-int readPPM(FILE* input, RGBpixel** map, int magicNumber, int width, int height, int scale){
+int writePPM(FILE* output, RGBpixel** map, char* magicNumber, int width, int height, int scale){
+	int countWidth = 0;
+	int countHeight = 0;
+	int countColor = 0;
+	int maxPrintWidth = 3;
+	char* tempOutput;
+
+	fprintf(output, "%s\n%u %u\n%u\n", magicNumber, width, height, scale);
+	for(countHeight; countHeight<height; countHeight++){
+		countWidth = 0;
+		for(countWidth; countWidth<width; countWidth++){
+			countColor = 0;
+			for(countColor; countColor<3; countColor++){
+				//fwrite(map[countHeight][countWidth], 1, 1, tempOutput);
+				fprintf(output, "%*d ", maxPrintWidth, map[countHeight][countWidth][countColor]);
+			}
+			fprintf(output, "\t");
+		}
+		fprintf(output, "\n");
+	}
+	return 0;
+}
+
+int readPPM(FILE* input, RGBpixel** map, char* magicNumber, int width, int height, int scale){
 	char* tempInput;
 	int tempInt;
 	RGBpixel* tempPixel;
@@ -124,15 +160,15 @@ int readPPM(FILE* input, RGBpixel** map, int magicNumber, int width, int height,
 					printf("Error: Sting greater than 8");
 				}
 				tempInt = (int)strtol(tempInput,(char **)NULL, base);
-				printf("%u",tempInt);
-				if(tempInt < 0 || tempInt > 255){
+				printf("%u\t%u\n",tempInt, scale);
+				if(tempInt < 0 || tempInt > 255){// || tempInt > scale){
 					printf("%u Error: String size out of bounds", tempInt);
 				}
 				map[countHeight][countWidth][countColor] = (char)tempInt;
 			}
-			printf("\n");
 		}
 	}		
 	return 0;
 }
+
 
