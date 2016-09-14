@@ -62,9 +62,25 @@ int main(int argc, char* argv[]) {
 
 	//Read magic number
 	fscanf(input,"%8s",magicNumber);
+	
 	//Read width and convert to int, repeat for height and scale
-	fscanf(input,"%8s",tempInput);
-	width = (int) strtol(tempInput,(char **)NULL,10);
+	int commentLine = 1;
+	do{
+		fscanf(input,"%8s",tempInput);
+		if(tempInput[0] == '#'){
+			char str[1000];
+			fgets (str, 1000, input);
+			printf("%s\n",str);
+		}
+		else{
+			width = (int) strtol(tempInput,(char **)NULL,10);
+			commentLine = 0;
+		}
+	}
+	while(commentLine);
+	//fscanf(input,"%8s",tempInput);
+	//return 1;
+	//width = (int) strtol(tempInput,(char **)NULL,10);
 
 	fscanf(input,"%8s",tempInput);
 	height = (int) strtol(tempInput,(char **)NULL,10);
@@ -215,8 +231,11 @@ void readPPM(FILE* input, RGBpixel** map, char* magicNumber, int width, int heig
 				map[countHeight][countWidth][countColor] = (unsigned char)tempInt;
 				printf("Stored %u at height %u width %u color %u\n", map[countHeight][countWidth][countColor], countHeight, countWidth, countColor);
 			}
+			//printf("last value is %u\n", map[4][4][2]);
 		}
+		//printf("last value is %u\n", map[4][4][2]);
 	}
+	printf("return value is %u\n", map[4][4][2]);
 	//return 0;
 }
 
