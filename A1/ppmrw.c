@@ -1,12 +1,12 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-//#include "ppmrw.h"
+//#include <stdio.h>
+//#include <stdlib.h>
+//#include <string.h>
+#include "ppmrw.h"
 
 
-typedef unsigned char RGBpixel[3];
+//typedef unsigned char RGBpixel[3];
 
-#define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
+/*#define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
 #define BYTE_TO_BINARY(byte)  \
   (byte & 0x80 ? '1' : '0'), \
   (byte & 0x40 ? '1' : '0'), \
@@ -15,21 +15,8 @@ typedef unsigned char RGBpixel[3];
   (byte & 0x08 ? '1' : '0'), \
   (byte & 0x04 ? '1' : '0'), \
   (byte & 0x02 ? '1' : '0'), \
-  (byte & 0x01 ? '1' : '0') 
+  (byte & 0x01 ? '1' : '0') */
 
-const char *byte_to_binary(int x)
-{
-    static char b[9];
-    b[0] = '\0';
-
-    int z;
-    for (z = 128; z > 0; z >>= 1)
-    {
-        strcat(b, ((x & z) == z) ? "1" : "0");
-    }
-
-    return b;
-}
 
 int main(int argc, char* argv[]) {
 	RGBpixel **pixmap;
@@ -126,7 +113,7 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
-int printPixmap(RGBpixel** map, char* magicNumber, int width, int height, int scale){
+void printPixmap(RGBpixel** map, char* magicNumber, int width, int height, int scale){
 	int countWidth;
 	int countHeight;
 	int countColor;
@@ -142,10 +129,10 @@ int printPixmap(RGBpixel** map, char* magicNumber, int width, int height, int sc
 		}
 		printf("\n");
 	}
-	return 0;
+	//return 0;
 }
 
-int writeP3(FILE* output, RGBpixel** map, char* magicNumber, int width, int height, int scale){
+void writeP3(FILE* output, RGBpixel** map, char* magicNumber, int width, int height, int scale){
 	int countWidth = 0;
 	int countHeight = 0;
 	int countColor = 0;
@@ -165,10 +152,10 @@ int writeP3(FILE* output, RGBpixel** map, char* magicNumber, int width, int heig
 		}
 		fprintf(output, "\n");
 	}
-	return 0;
+	//return 0;
 }
 
-int writeP6(FILE* output, RGBpixel** map, char* magicNumber, int width, int height, int scale){
+void writeP6(FILE* output, RGBpixel** map, char* magicNumber, int width, int height, int scale){
 	int countWidth = 0;
 	int countHeight = 0;
 	int countColor = 0;
@@ -188,10 +175,10 @@ int writeP6(FILE* output, RGBpixel** map, char* magicNumber, int width, int heig
 		}
 		fprintf(output, "\n");
 	}
-	return 0;
+	//return 0;
 }
 
-int readPPM(FILE* input, RGBpixel** map, char* magicNumber, int width, int height, int scale){
+void readPPM(FILE* input, RGBpixel** map, char* magicNumber, int width, int height, int scale){
 	unsigned char* tempInput;
 	int tempInt;
 	RGBpixel* tempPixel;
@@ -208,7 +195,7 @@ int readPPM(FILE* input, RGBpixel** map, char* magicNumber, int width, int heigh
 	}
 	else{
 		printf("ERROR HERE");
-		return 1;
+		//return 1;
 	}
 	
 	for(countHeight = 0; countHeight<height; countHeight++){
@@ -230,7 +217,7 @@ int readPPM(FILE* input, RGBpixel** map, char* magicNumber, int width, int heigh
 			}
 		}
 	}
-	return 0;
+	//return 0;
 }
 
 
