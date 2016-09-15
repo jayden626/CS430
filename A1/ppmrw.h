@@ -21,8 +21,8 @@ typedef unsigned char RGBpixel[3];
 
 int main(int argc, char* argv[]);
 void printPixmap(RGBpixel** map, char* magicNumber, int width, int height, int scale);
-void writeP3(FILE* output, RGBpixel** map, char* magicNumber, int width, int height, int scale);
-void writeP6(FILE* output, RGBpixel** map, char* magicNumber, int width, int height, int scale);
+void writeP3(FILE* output, RGBpixel** map, int width, int height, int scale);
+void writeP6(FILE* output, RGBpixel** map, int width, int height, int scale);
 void readPPM(FILE* input, RGBpixel** map, char* magicNumber, int width, int height, int scale);
 
 
