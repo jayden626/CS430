@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	printf("%s and %u %u %u\n",magicNumber, width, height, scale);
-	if(strcmp(magicNumber,"P3") == 0 || strcmp(magicNumber,"P6") == 0){
+	if(strcmp(magicNumber,"P3") == 0){
 		readPPM(input, pixmap, magicNumber, width, height, scale);
 
 
@@ -117,6 +117,14 @@ int main(int argc, char* argv[]) {
 		printPixmap(pixmap, magicNumber, width, height, scale);
 		puts("printed");
 		writeP3(output, pixmap, width, height, scale);
+	}
+	else if(strcmp(magicNumber,"P6") == 0){
+
+		readP6(input, pixmap, width, height, scale);
+		//printPixmap(pixmap, magicNumber, width, height, scale);
+		//puts("printed");
+		writeP6(output, pixmap, width, height, scale);
+		puts("written");
 	}
 	/*else if(strcmp(magicNumber,"P6") == 0){
 		//readP6(input);
@@ -186,7 +194,7 @@ void writeP6(FILE* output, RGBpixel** map, int width, int height, int scale){
 	//char* tempOutput;
 
 	fprintf(output, "P6\n%u %u\n%u\n", width, height, scale);
-	fwrite(map[countHeight][countWidth], sizeof(RGBpixel)*width, height, output);
+	fwrite(map, sizeof(RGBpixel), height*width, output);
 	/*for(countHeight; countHeight<height; countHeight++){
 		countWidth = 0;
 		for(countWidth; countWidth<width; countWidth++){
@@ -247,6 +255,33 @@ void readPPM(FILE* input, RGBpixel** map, char* magicNumber, int width, int heig
 	}
 	//printf("return value is %u\n", map[4][4][2]);
 	//return 0;
+}
+
+int readP6(FILE* input, RGBpixel** map, int width, int height, int scale){
+	unsigned char tempInput[8];
+	int tempInt;
+	RGBpixel* tempPixel;
+	int base = 2;
+	int countWidth;
+	int countHeight;
+	int countColor; //loops through 0,1,2 for assigning the correct color values in the RGBpixel
+	printf("reading\n");
+	fread(map, sizeof(RGBpixel)*width, height, input);
+	puts("read");
+	/*for(countHeight = 0; countHeight<height; countHeight++){
+		for(countWidth = 0; countWidth<width; countWidth++){
+			for(countColor = 0; countColor<3; countColor++){
+				//strcpy(tempInput, map[countHeight][countWidth][countColor]);
+				printf("%u yo yo\n",map[countHeight][countWidth][countColor]);
+				tempInt = (int)strtol(tempInput,(char **)NULL, base);
+				//printf("Storing %u at height %u width %u color %u\n", tempInt, countHeight, countWidth, countColor);..0
+				map[countHeight][countWidth][countColor] = (unsigned char)tempInt;
+				puts("conv");
+				//printf("Stored %u at height %u width %u color %u\n", map[countHeight][countWidth][countColor], countHeight, countWidth, countColor);
+			}
+		}
+	}*/
+	return 0;
 }
 
 
