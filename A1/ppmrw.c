@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
 	}
 	else if(strcmp(magicNumber,"P6") == 0){
 		readP6(input,output, pixmap, width, height, scale);
-		//printPixmap(pixmap, magicNumber, width, height, scale);
+		printPixmap(pixmap, magicNumber, width, height, scale);
 		//puts("printed");
 		//writeP6(output, pixmap, width, height, scale);
 		puts("written"); //debugging
@@ -139,18 +139,20 @@ void writeP3(FILE* output, RGBpixel** map, int width, int height, int scale){
 	//Print header, then loop through pixmap printing each value to output file
 	//TODO: Fix.
 	fprintf(stdout, "P3\n%u %u\n%u\n", width, height, scale);
-	fprintf(output, "P3\n%u %u\n%u\n", width, height, scale);
+	//fprintf(output, "P3\n%u %u\n%u\n", width, height, scale);
 	for(countHeight = 0; countHeight<height; countHeight++){
 		for(countWidth = 0; countWidth<width; countWidth++){
 			for(countColor = 0; countColor<3; countColor++){
 				fprintf(stdout, "%*u ", maxPrintWidth, map[countHeight][countWidth][countColor]);
-				fprintf(output, "%*u ", maxPrintWidth, map[countHeight][countWidth][countColor]);
+				//fprintf(stdout, "%u\n", map[countHeight][countWidth][countColor]);
+				//fprintf(output, "%*u ", maxPrintWidth, map[countHeight][countWidth][countColor]);
 			}
 			fprintf(stdout, "\t");
-			fprintf(output, "\t");
+			//fprintf(stdout, "\n");
+			//fprintf(output, "\t");
 		}
 		fprintf(stdout, "\n");
-		fprintf(output, "\n");
+		//fprintf(output, "\n");
 	}
 }
 
@@ -202,17 +204,17 @@ void readP3(FILE* input, RGBpixel** map, char* magicNumber, int width, int heigh
  * May or may not be working properly. Either this or the output is broken, or there's weird errors again
  */
 int readP6(FILE* input, FILE* output, RGBpixel** map, int width, int height, int scale){
-	//unsigned char* tempInput;
-	//int tempInt;
+	unsigned char* tempInput;
+	int tempInt;
 	//RGBpixel* tempPixel;
 	//int base = 2;
 	//char tempOut[255];
-	//int countWidth;
-	//int countHeight;
-	//int countColor; //loops through 0,1,2 for assigning the correct color values in the RGBpixel
+	int countWidth;
+	int countHeight;
+	int countColor; //loops through 0,1,2 for assigning the correct color values in the RGBpixel
 	printf("reading\n");
-	fread(map, sizeof(RGBpixel)*width, height, input);
-	puts("read");
+	//fread(map, sizeof(RGBpixel)*width, height, input);
+	
 	//tempInput = &(map[9][9][2]);
 	//printf("%d\n",tempInput);
 	//printf("%8u\n", map[0][0][0]);
@@ -223,9 +225,13 @@ int readP6(FILE* input, FILE* output, RGBpixel** map, int width, int height, int
 
 	//fprintf(output, "P6\n%u %u\n%u\n", width, height, scale);
 	//fwrite(map, sizeof(RGBpixel)*width, height, output);
-	/*for(countHeight = 0; countHeight<height; countHeight++){
+	for(countHeight = 0; countHeight<height; countHeight++){
 		for(countWidth = 0; countWidth<width; countWidth++){
 			for(countColor = 0; countColor<3; countColor++){
+				fread(tempInput, 1, 1, input);
+				tempInt = *tempInput;
+				map[countHeight][countWidth][countColor] = (char)tempInt;
+				printf("%u\n", map[countHeight][countWidth][countColor]);
 				//strcpy(tempInput, map[countHeight][countWidth][countColor]);
 				//printf("%u yo yo\n",map[countHeight][countWidth][countColor]);
 				//tempInt = (int)strtol(tempInput,(char **)NULL, base);
@@ -235,7 +241,8 @@ int readP6(FILE* input, FILE* output, RGBpixel** map, int width, int height, int
 				//printf("Stored %u at height %u width %u color %u\n", map[countHeight][countWidth][countColor], countHeight, countWidth, countColor);
 			}
 		}
-	}*/
+	}
+	puts("read");
 	return 0;
 }
 
