@@ -88,8 +88,9 @@ int main(int argc, char* argv[]) {
 		}
 	}
 	while(commentLine);
-	//fscanf(input,"%s",tempInput);
+	//fscanf(input,"%d",tempInput);
 	//scale = (int) strtol(tempInput,(char **)NULL,10);
+	fgetc(input);
 	
 	//Checking that each channel is a single byte
 	if(scale < 0 || scale > 255 || width < 0 || height < 0){
@@ -202,7 +203,7 @@ void writeP6(FILE* output, RGBpixel* map, int width, int height, int scale){
 
 	//Print header, write the pixmap to the output file.
 	fprintf(output, "P6\n%u %u\n%u\n", width, height, scale);
-	fwrite(map, sizeof(RGBpixel), height*width, output);
+	fwrite(map, sizeof(RGBpixel), height*width*3, output);
 }
 
 /*
@@ -253,7 +254,7 @@ int readP6(FILE* input, FILE* output, RGBpixel* map, int width, int height, int 
 	int countHeight;
 	int countColor; //loops through 0,1,2 for assigning the correct color values in the RGBpixel
 	printf("reading P6\n");
-	//fread(map, sizeof(RGBpixel)*width*3, height, input);
+	fread(map, sizeof(RGBpixel), height*width*3, input);
 	int j = 0;
 	
 	//tempInput = &(map[9][9][2]);
@@ -269,13 +270,14 @@ int readP6(FILE* input, FILE* output, RGBpixel* map, int width, int height, int 
 	//for(countHeight = 0; countHeight<height; countHeight++){
 	//	for(countWidth = 0; countWidth<width; countWidth++){
 	//		for(countColor = 0; countColor<3; countColor++){
-	for (j=0; j<height*width*3; j++) {
+	/*for (j=0; j<height*width*3; j++) {
+		printf("j = %d\n", j);
 		fread(tempInput, sizeof(RGBpixel), 1, input);
-		printf("tempInput: %d\n", tempInput);
-		tempInt = *tempInput;
-						printf("tempInt: %d\n", tempInt);
-		map[j] = tempInt;//countHeight*width + countWidth*3 + countColor] = (unsigned char)tempInt;
-		printf("%u\n", map[j]);
+		printf("tempInput: %d\n", tempInput);*/
+		//tempInt = *tempInput;
+		//printf("tempInt: %d\n", tempInt);
+		//map[j] = tempInt;//countHeight*width + countWidth*3 + countColor] = (unsigned char)tempInt;
+		//printf("%u\n", map[j]);
 				//countHeight*width + countWidth*3 + countColor]);
 				//strcpy(tempInput, map[countHeight][countWidth][countColor]);
 				//printf("%u yo yo\n",map[countHeight][countWidth][countColor]);
@@ -287,7 +289,7 @@ int readP6(FILE* input, FILE* output, RGBpixel* map, int width, int height, int 
 	//		}
 	//	}
 	//}
-	}
+	//}
 	puts("read");
 	return 0;
 }
