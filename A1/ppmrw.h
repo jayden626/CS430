@@ -5,13 +5,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef unsigned char RGBpixel[3];
+typedef unsigned char RGBpixel;
 
 int main(int argc, char* argv[]);
-void printPixmap(RGBpixel** map, char* magicNumber, int width, int height, int scale);
-void writeP3(FILE* output, RGBpixel** map, int width, int height, int scale);
-void writeP6(FILE* output, RGBpixel** map, int width, int height, int scale);
-void readP3(FILE* input, RGBpixel** map, char* magicNumber, int width, int height, int scale);
+void printPixmap(RGBpixel* map, char* magicNumber, int width, int height, int scale);
+void writeP3(FILE* output, RGBpixel* map, int width, int height, int scale);
+void writeP6(FILE* output, RGBpixel* map, int width, int height, int scale);
+void readP3(FILE* input, RGBpixel* map, char* magicNumber, int width, int height, int scale);
 
 
 #endif
