@@ -1,75 +1,50 @@
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <string.h>
 #include "ppmrw.h"
 
-
-//typedef unsigned char RGBpixel[3];
-
-/*#define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
-#define BYTE_TO_BINARY(byte)  \
-  (byte & 0x80 ? '1' : '0'), \
-  (byte & 0x40 ? '1' : '0'), \
-  (byte & 0x20 ? '1' : '0'), \
-  (byte & 0x10 ? '1' : '0'), \
-  (byte & 0x08 ? '1' : '0'), \
-  (byte & 0x04 ? '1' : '0'), \
-  (byte & 0x02 ? '1' : '0'), \
-  (byte & 0x01 ? '1' : '0') */
-
-
+//Main function
 int main(int argc, char* argv[]) {
 	RGBpixel **pixmap;
 	FILE* input;
 	FILE* output;
-	int convertToNumber;
+	int convertToNumber; //Magic number to write out to
 	char magicNumber[255];
-	unsigned char tempInput[255];
+	unsigned char tempInput[255]; //Buffer that temporarily stores input values before storing them
 	int height;
 	int width;
 	int scale;
-	int count = 1;
+	int count; //iterator used to initialise the pixmap
 
-	if(argc == 4){
-		convertToNumber = (int) strtol(argv[1],(char **)NULL,10);
-		input = fopen(argv[2], "r");
-		output = fopen(argv[3], "w");
-	}
-	else{
-		printf("ERROR: Wrong arguements");
+	//Reading in arguements and checking for errors
+	if(argc != 4){
+		fprintf(stderr, "Error: Wrong amount of arguements. Correct format is ppmrw [3|6] input output.");
 		return 1;
 	}
-
-	/*if(input)
-	printf("Hello world\n");
-
-	RGBpixel* pix = malloc(sizeof(char)*3);
-	*pix[0] = 0b01010000;
-	*pix[1] = (char) strtol("80",(char **)NULL,10);
-	*pix[2] = *pix[0];
-
-
-	printf("%c %c %c", *pix[0],*pix[1],*pix[2]);
-
-	height = (int) strtol("101",(char **)NULL,2);
-	printf("\nheight: %u\n",height);*/
-	//input = fopen("test2.data", "r");
-	//printf("here");
+	convertToNumber = (int) strtol(argv[1],(char **)NULL,10);	
+	printf("%d\n",convertToNumber);
+	if(convertToNumber != 3 && convertToNumber != 6){
+		fprintf(stderr, "Error: Not a correct conversion number. Correct formats are '3' or '6'.");
+		return 1;
+	}
+	input = fopen(argv[2], "r");
 	if(!input){
-		printf("TO STDERR: File not found");
+		fprintf(stderr, "Error: Cannot open input file.");
+		return 1;
+	}
+	output = fopen(argv[3], "w");
+	if(!input){
+		fprintf(stderr, "Error: Cannot open output file.");
 		return 1;
 	}
 
 	//Read magic number
-	fscanf(input,"%8s",magicNumber);
-	
-	//Read width and convert to int, repeat for height and scale
-	int commentLine = 1;
+	fscanf(input,"%s",magicNumber);
+
+	//Read in all comment lines. The last read value will contain the width. Works with zero or many comments
+	int commentLine = 1; //boolean used in while loop
 	do{
-		fscanf(input,"%8s",tempInput);
+		fscanf(input,"%s",tempInput);
 		if(tempInput[0] == '#'){
 			char str[1000];
-			fgets (str, 1000, input);
+			fgets (str, 1000, input); //ignore rest of the line. please no lines over 1000 char
 			printf("%s\n",str);
 		}
 		else{
@@ -78,18 +53,17 @@ int main(int argc, char* argv[]) {
 		}
 	}
 	while(commentLine);
-	//fscanf(input,"%8s",tempInput);
-	//return 1;
-	//width = (int) strtol(tempInput,(char **)NULL,10);
 
-	fscanf(input,"%8s",tempInput);
+	//Scanning and storing height and scale
+	fscanf(input,"%s",tempInput);
 	height = (int) strtol(tempInput,(char **)NULL,10);
 
-	fscanf(input,"%8s",tempInput);
+	fscanf(input,"%s",tempInput);
 	scale = (int) strtol(tempInput,(char **)NULL,10);
-	//Error checking
+	
+	//Checking that each channel is a single byte
 	if(scale < 0 || scale > 255 || width < 0 || height < 0){
-		printf("Error: Scale invalid (print to stderr)");
+		fprintf(stderr, "Error: Scale is more thal one byte per channel.");
 	}
 
 	//Initialize pixmap (Inspired by the readings)
@@ -98,52 +72,49 @@ int main(int argc, char* argv[]) {
 	for(count = 1; count<height; count++){
 		pixmap[count] = pixmap[count-1] + (sizeof(RGBpixel)*width);
 	}
+	
+	printf("%s and %u %u %u\n",magicNumber, width, height, scale); //print for debugging purposes
 
-	printf("%s and %u %u %u\n",magicNumber, width, height, scale);
+	//Check magicNumber and use appropriate read function
 	if(strcmp(magicNumber,"P3") == 0){
-		readPPM(input, pixmap, magicNumber, width, height, scale);
-
-
-		/*int countWidth;
-		int countColor;
-		for(countWidth = 0; countWidth<width; countWidth++){
-			for(countColor = 0; countColor<3; countColor++){
-				printf("%*d ", 3, pixmap[height-1][countWidth][countColor]);
-			}
-			printf("\t");
-		}
-		printf("\n");*/
-		//printf("last value is %u\n", pixmap[4][4][2]);
-		printPixmap(pixmap, magicNumber, width, height, scale);
-		puts("printed");
-		writeP3(output, pixmap, width, height, scale);
+		readP3(input, pixmap, magicNumber, width, height, scale);
+		printPixmap(pixmap, magicNumber, width, height, scale); //debugging
+		puts("printed"); //debugging
+		
 	}
 	else if(strcmp(magicNumber,"P6") == 0){
-
-		readP6(input, pixmap, width, height, scale);
+		readP6(input,output, pixmap, width, height, scale);
 		//printPixmap(pixmap, magicNumber, width, height, scale);
 		//puts("printed");
-		writeP6(output, pixmap, width, height, scale);
-		puts("written");
+		//writeP6(output, pixmap, width, height, scale);
+		puts("written"); //debugging
 	}
-	/*else if(strcmp(magicNumber,"P6") == 0){
-		//readP6(input);
-		readP3(input, pixmap, width, height, scale);
-		printPixmap(pixmap, magicNumber, width, height, scale);
-		puts("Meant to read P6 here");
-	}*/
+
+	//Check conversion arguement and use appropriate output function
+	if(convertToNumber == 3){
+		puts("writing p3");//debugging
+		writeP3(output, pixmap, width, height, scale);
+	}
+	else if(convertToNumber == 6){
+		puts("writing p6");//debugging
+		writeP6(output, pixmap, width, height, scale);
+	}
 
 	int inputClose = fclose(input);
 	int outputClose = fclose(output);
 	return 0;
 }
 
+/*
+ * This funtion prints the given array of RGBpixels to stdout
+ */
 void printPixmap(RGBpixel** map, char* magicNumber, int width, int height, int scale){
 	int countWidth;
 	int countHeight;
 	int countColor;
 	int maxPrintWidth = 3;
 
+	//Print header, then loop through pixmap printing each value to stdout
 	printf("%s\n%u %u\n%u\n", magicNumber, width, height, scale);
 	for(countHeight = 0; countHeight<height; countHeight++){
 		for(countWidth = 0; countWidth<width; countWidth++){
@@ -154,129 +125,113 @@ void printPixmap(RGBpixel** map, char* magicNumber, int width, int height, int s
 		}
 		printf("\n");
 	}
-	//return 0;
 }
 
+/*
+ * This funtion writes the given array of RGBpixels to the given output file in P3 format
+ */
 void writeP3(FILE* output, RGBpixel** map, int width, int height, int scale){
 	int countWidth;
 	int countHeight;
 	int countColor;
 	int maxPrintWidth = 3;
-	//unsigned char* tempOutput;
 
+	//Print header, then loop through pixmap printing each value to output file
+	//TODO: Fix.
 	fprintf(stdout, "P3\n%u %u\n%u\n", width, height, scale);
 	fprintf(output, "P3\n%u %u\n%u\n", width, height, scale);
 	for(countHeight = 0; countHeight<height; countHeight++){
 		for(countWidth = 0; countWidth<width; countWidth++){
 			for(countColor = 0; countColor<3; countColor++){
-				//fwrite(map[countHeight][countWidth], 1, 1, tempOutput);
 				fprintf(stdout, "%*u ", maxPrintWidth, map[countHeight][countWidth][countColor]);
-				//fflush(output);
-				fprintf(output, "%d ", map[countHeight][countWidth][countColor]);
-//				fprintf(stdout, "%d ", map[countHeight * width + countWidth * 3][countColor]);
-//				fprintf(output, "%d ", map[countHeight * width + countWidth * 3][countColor]);
+				fprintf(output, "%*u ", maxPrintWidth, map[countHeight][countWidth][countColor]);
 			}
 			fprintf(stdout, "\t");
 			fprintf(output, "\t");
-			//fflush(output);
 		}
 		fprintf(stdout, "\n");
 		fprintf(output, "\n");
 	}
-	//return 0;
 }
 
+/*
+ * This funtion writes the given array of RGBpixels to the given output file in P6 format
+ */
 void writeP6(FILE* output, RGBpixel** map, int width, int height, int scale){
 	int countWidth = 0;
 	int countHeight = 0;
 	int countColor = 0;
-	//int maxPrintWidth = 8;
-	//char* tempOutput;
 
+	//Print header, write the pixmap to the output file.
 	fprintf(output, "P6\n%u %u\n%u\n", width, height, scale);
 	fwrite(map, sizeof(RGBpixel), height*width, output);
-	/*for(countHeight; countHeight<height; countHeight++){
-		countWidth = 0;
-		for(countWidth; countWidth<width; countWidth++){
-			countColor = 0;
-			for(countColor; countColor<3; countColor++){
-				//fwrite(*map[countHeight][countWidth], 1, 3, output);
-				//fprintf(output, BYTE_TO_BINARY_PATTERN" ", BYTE_TO_BINARY(map[countHeight][countWidth][countColor]));
-			}
-			fprintf(output, "\t");
-		}
-		fprintf(output, "\n");
-	}*/
-	//return 0;
 }
 
-void readPPM(FILE* input, RGBpixel** map, char* magicNumber, int width, int height, int scale){
+/*
+ * This funtion reads the given P3 input file and stored it in the buffer
+ */
+void readP3(FILE* input, RGBpixel** map, char* magicNumber, int width, int height, int scale){
 	unsigned char tempInput[8];
 	int tempInt;
-	RGBpixel* tempPixel;
-	int base;
 	int countWidth;
 	int countHeight;
 	int countColor; //loops through 0,1,2 for assigning the correct color values in the RGBpixel
-
-	if(strcmp(magicNumber,"P3") == 0){
-		base = 10;
-	}
-	else if(strcmp(magicNumber,"P6") == 0){
-		base = 2;
-	}
-	else{
-		printf("ERROR HERE");
-		//return 1;
-	}
 	
 	for(countHeight = 0; countHeight<height; countHeight++){
 		for(countWidth = 0; countWidth<width; countWidth++){
 			for(countColor = 0; countColor<3; countColor++){
-				//tempPixel = **map[countHeight][countWidth];
-				fscanf(input,"%8s",tempInput);
-				//printf("%u\n",fgetc(input));
+			
+				fscanf(input,"%s",tempInput);
 				if((int)strlen(tempInput) > 8){
 					printf("Error: Sting greater than 8");
 				}
-				tempInt = (int)strtol(tempInput,(char **)NULL, base);
+				tempInt = (int)strtol(tempInput,(char **)NULL, 10);
 				printf("%u\t%u\n",tempInt, scale);
 				if(tempInt < 0 || tempInt > 255){// || tempInt > scale){
 					printf("%u Error: String size out of bounds", tempInt);
 				}
-				//printf("Storing %u at height %u width %u color %u\n", tempInt, countHeight, countWidth, countColor);..0
 				map[countHeight][countWidth][countColor] = (unsigned char)tempInt;
 				
-				//printf("Stored %u at height %u width %u color %u\n", map[countHeight][countWidth][countColor], countHeight, countWidth, countColor);
 			}
-			//printf("last value is %u\n", map[4][4][2]);
 		}
-		//printf("last value is %u\n", map[4][4][2]);
 	}
-	//printf("return value is %u\n", map[4][4][2]);
-	//return 0;
 }
 
-int readP6(FILE* input, RGBpixel** map, int width, int height, int scale){
-	unsigned char tempInput[8];
-	int tempInt;
-	RGBpixel* tempPixel;
-	int base = 2;
-	int countWidth;
-	int countHeight;
-	int countColor; //loops through 0,1,2 for assigning the correct color values in the RGBpixel
+/*
+ * This funtion reads the given P6 input file and stored it in the buffer
+ * May or may not be working properly. Either this or the output is broken, or there's weird errors again
+ */
+int readP6(FILE* input, FILE* output, RGBpixel** map, int width, int height, int scale){
+	//unsigned char* tempInput;
+	//int tempInt;
+	//RGBpixel* tempPixel;
+	//int base = 2;
+	//char tempOut[255];
+	//int countWidth;
+	//int countHeight;
+	//int countColor; //loops through 0,1,2 for assigning the correct color values in the RGBpixel
 	printf("reading\n");
 	fread(map, sizeof(RGBpixel)*width, height, input);
 	puts("read");
+	//tempInput = &(map[9][9][2]);
+	//printf("%d\n",tempInput);
+	//printf("%8u\n", map[0][0][0]);
+	//puts("printed");
+		//itoa(map[0][0][0], tempOut, 2);
+		//sprintf(tempOut, "1","%d",map[0][0][0]);
+		//printf("%s\n", tempOut);
+
+	//fprintf(output, "P6\n%u %u\n%u\n", width, height, scale);
+	//fwrite(map, sizeof(RGBpixel)*width, height, output);
 	/*for(countHeight = 0; countHeight<height; countHeight++){
 		for(countWidth = 0; countWidth<width; countWidth++){
 			for(countColor = 0; countColor<3; countColor++){
 				//strcpy(tempInput, map[countHeight][countWidth][countColor]);
-				printf("%u yo yo\n",map[countHeight][countWidth][countColor]);
-				tempInt = (int)strtol(tempInput,(char **)NULL, base);
+				//printf("%u yo yo\n",map[countHeight][countWidth][countColor]);
+				//tempInt = (int)strtol(tempInput,(char **)NULL, base);
 				//printf("Storing %u at height %u width %u color %u\n", tempInt, countHeight, countWidth, countColor);..0
-				map[countHeight][countWidth][countColor] = (unsigned char)tempInt;
-				puts("conv");
+				//map[countHeight][countWidth][countColor] = (unsigned char)tempInt;
+				//puts("conv");
 				//printf("Stored %u at height %u width %u color %u\n", map[countHeight][countWidth][countColor], countHeight, countWidth, countColor);
 			}
 		}
