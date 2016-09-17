@@ -1,3 +1,17 @@
+/**
+ * This program can be used to read a P3 or P6 PPM file into memory
+ * and write the memory to a file in either P3 or P6 format.
+ * It's proper usage should be "ppmrw [3|6] inputFile.extension outputFile.extension"
+ *
+ * NOTE: If height or width is less than 1, program will throw an error.
+ * NOTE: Will not throw an error if the width*height is less than or greater than the number of input pixels
+ *       i.e. a 3*3 file having 4*4 input pixels or a 5*5 file having 4*4 input pixels
+ *
+ * Author: Jayden Urch
+ * Date: 09/16/2016
+ * Student No: 5388406 / jsu22
+ */
+
 #include "ppmrw.h"
 
 //Main function
@@ -7,7 +21,7 @@ int main(int argc, char* argv[]) {
 	FILE* output;
 	int convertToNumber; //Magic number to write out to
 	char magicNumber[255];
-	unsigned char tempInput[255]; //Buffer that temporarily stores input values before storing them
+	unsigned char tempInput[255]; //Buffer that temporarily holds input values before storing them
 	int height;
 	int width;
 	int scale;
@@ -17,7 +31,7 @@ int main(int argc, char* argv[]) {
 		fprintf(stderr, "Error: Wrong amount of arguements. Correct format is ppmrw [3|6] input output.");
 		return 1;
 	}
-	convertToNumber = (int) strtol(argv[1],(char **)NULL,10);	
+	convertToNumber = (int) strtol(argv[1],(char **)NULL,10); //strtol is used throughout this program to convert a string to an integer.	
 	if(convertToNumber != 3 && convertToNumber != 6){
 		fprintf(stderr, "Error: Not a correct conversion number. Correct formats are '3' or '6'.");
 		return 1;
@@ -35,9 +49,12 @@ int main(int argc, char* argv[]) {
 
 	//Read magic number
 	fscanf(input,"%s",magicNumber);
+	if(strcmp(magicNumber, "P3") != 0 && strcmp(magicNumber, "P6") != 0){
+		fprintf(stderr, "Error: Magic number is incorrect. Expected \"P3\" or \"P6\", got %s.", magicNumber);
+	}
 
 	//Read in all comment lines. The last read value will contain the width. Works with zero or many comments
-	int commentLine; //boolean used in while loop
+	int commentLine; //boolean used to terminate while loop.
 	do{
 		fscanf(input,"%s",tempInput);
 		if(tempInput[0] == '#'){
@@ -55,10 +72,10 @@ int main(int argc, char* argv[]) {
 	//Scanning and storing height and scale
 	do{
 		fscanf(input,"%s",tempInput);
-		if(tempInput[0] == '#'){ //TODO: Comments can appear anywhere in header
+		if(tempInput[0] == '#'){
 			commentLine = 1;
 			char str[1000];
-			fgets (str, 1000, input); //ignore rest of the line. please no lines over 1000 char
+			fgets (str, 1000, input);
 		}
 		else{
 			height = (int) strtol(tempInput,(char **)NULL,10);
@@ -69,10 +86,10 @@ int main(int argc, char* argv[]) {
 
 	do{
 		fscanf(input,"%s",tempInput);
-		if(tempInput[0] == '#'){ //TODO: Comments can appear anywhere in header
+		if(tempInput[0] == '#'){
 			commentLine = 1;
 			char str[1000];
-			fgets (str, 1000, input); //ignore rest of the line. please no lines over 1000 char
+			fgets (str, 1000, input);
 		}
 		else{
 			scale = (int) strtol(tempInput,(char **)NULL,10);
@@ -83,8 +100,9 @@ int main(int argc, char* argv[]) {
 	fgetc(input); //Skipping the newline character after the scale
 	
 	//Checking that each channel is a single byte
-	if(scale < 0 || scale > 255 || width < 0 || height < 0){
-		fprintf(stderr, "Error: Scale is more than one byte per channel.");
+	if(scale < 0 || scale > 255 || width < 1 || height < 1){
+		fprintf(stderr, "Error: width, height and/or scale have incorrect values");
+		exit(1);
 	}
 
 	//Initialize pixmap
@@ -123,7 +141,7 @@ void printPixmap(RGBpixel* map, char* magicNumber, int width, int height, int sc
 	int j;
 
 	if(width < 0 || height < 0 || scale < 0 || scale > 255){
-		fprintf(stderr, "Error writing P3: width, height or scale has incorrect values");
+		fprintf(stderr, "Error writing P3: width, height and/or scale have incorrect values");
 		exit(1);
 	}
 	
@@ -149,8 +167,8 @@ void printPixmap(RGBpixel* map, char* magicNumber, int width, int height, int sc
 void writeP3(FILE* output, RGBpixel* map, int width, int height, int scale){
 	int j;
 	
-	if(width < 0 || height < 0 || scale < 0 || scale > 255){
-		fprintf(stderr, "Error writing P3: width, height or scale has incorrect values");
+	if(width < 1 || height < 1 || scale < 0 || scale > 255){
+		fprintf(stderr, "Error writing P3: width, height and/or scale have incorrect values");
 		exit(1);
 	}
 	
@@ -175,8 +193,8 @@ void writeP3(FILE* output, RGBpixel* map, int width, int height, int scale){
  */
 void writeP6(FILE* output, RGBpixel* map, int width, int height, int scale){
 
-	if(width < 0 || height < 0 || scale < 0 || scale > 255){
-		fprintf(stderr, "Error writing P6: width, height or scale has incorrect values");
+	if(width < 1 || height < 1 || scale < 0 || scale > 255){
+		fprintf(stderr, "Error writing P6: width, height and/or scale have incorrect values");
 		exit(1);
 	}
 	
@@ -199,7 +217,7 @@ void readP3(FILE* input, RGBpixel* map, int width, int height, int scale){
 	for (j=0; j<height*width*3; j++) {
 		fscanf(input,"%d",&tempInt);
 		if(tempInt < 0 || tempInt > 255 || tempInt > scale){
-			fprintf(stderr, "%u Error: String size out of bounds (less than 0, greater than 255 or greater than scale", tempInt);
+			fprintf(stderr, "Error: String size out of bounds (less than 0, greater than 255 or greater than scale)");
 			exit(1);
 		}
 		map[j] = (unsigned char)tempInt;
