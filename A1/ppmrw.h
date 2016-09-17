@@ -1,3 +1,8 @@
+/**
+ * Author: Jayden Urch
+ * Date: 09/16/2016
+ * Student No: 5388406 / jsu22
+ */
 #ifndef URCH_PPMRW
 #define URCH_PPMRW
 
