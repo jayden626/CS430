@@ -16,7 +16,6 @@ static inline void normalize(double* v) {
   v[2] /= len;
 }
 
-
 double cylinder_intersection(double* Ro, double* Rd,
 			     double* C, double r) {
   // Step 1. Find the equation for the object you are
@@ -107,6 +106,16 @@ double sphere_intersection(double* Ro, double* Rd, double* Cs, double r){
 	return -1;
 }
 
+double plane_intersection(double* Ro, double* Rd, double* point, double* N){
+	double d = ((-point[0])*N[0])+((-point[1])*N[1])+((-point[2])*N[2]);
+	double VdotN = (Rd[0]*N[0])+(Rd[1]*N[1])+(Rd[2]*N[2]);
+	double RoDotN = (Ro[0]*N[0])+(Ro[1]*N[1])+(Ro[2]*N[2]);
+
+	double t = (-(RoDotN+d))/VdotN;
+	//printf("d: %lf  VdotN: %lf  RoDotN: %lf  t: %lf\n",d, VdotN, RoDotN,t);
+	return t;
+}
+
 int main(int c, char** argv) {
 
   Object** objects;
@@ -153,10 +162,19 @@ int main(int c, char** argv) {
 	double t = 0;
 
 	switch(objects[i]->kind) {
+	case 0:
+		break;
+	
 	case 1:
 	  t = sphere_intersection(Ro, Rd,
 				    objects[i]->sphere.center,
 				    objects[i]->sphere.radius);
+	  break;
+
+  	case 2:
+	  t = plane_intersection(Ro, Rd,
+				    objects[i]->plane.position,
+				    objects[i]->plane.normal);
 	  break;
 	default:
 	  // Horrible error
