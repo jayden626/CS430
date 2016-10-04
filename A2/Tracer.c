@@ -1,27 +1,8 @@
-#include <stdio.h>
-#include <stdlib.h>
+//#include <stdio.h>
+//#include <stdlib.h>
 #include <math.h>
-
-// Plymorphism in C
-
-typedef struct {
-  int kind; // 0 = cylinder, 1 = sphere, 2 = teapot
-  double color[3];
-  union {
-    struct {
-      double center[3];
-      double radius;
-    } cylinder;
-    struct {
-      double center[3];
-      double radius;
-    } sphere;
-    struct {
-      double handle_length;
-    } teapot;
-  };
-} Object;
-
+#include "Parser.h"
+//#include "object.h"
 
 static inline double sqr(double v) {
   return v*v;
@@ -96,31 +77,67 @@ double cylinder_intersection(double* Ro, double* Rd,
   return -1;
 }
 
-int main() {
+double sphere_intersection(double* Ro, double* Rd, double* Cs, double r){
+
+	//printf("ray direction: %lf %lf %lf\n", Rd[0], Rd[1],Rd[2]);
+	//printf("center: %lf %lf %lf\n", Cs[0], Cs[1],Cs[2]);
+	// Rd is normalised, A = 1; double A = (sqr(Rd[0]) + sqr(Rd[1]) + sqr(Rd[2]));
+	double B = 2*(Rd[0]*(Ro[0] - Cs[0]) + Rd[1]*(Ro[1] - Cs[1]) + Rd[2]*(Ro[2] - Cs[2]));
+	double C = sqr(Ro[0]-Cs[0]) + sqr(Ro[1]-Cs[1]) + sqr(Ro[2]-Cs[2]) - sqr(r);
+
+	double det = sqr(B) - 4*C;
+	if(det < 0){
+		return -1;
+	}
+
+	det = sqrt(det);
+
+	double t0 = (-B - det) /2;
+	//printf("t0 = %lf\n", t0);
+	if(t0 > 0){
+		return t0;
+	}
+
+	double t1 = (-B + det) /2;
+	//printf("t1 = %lf\n", t1);
+	if(t1 > 0){
+		return t1;
+	}
+
+	return -1;
+}
+
+int main(int c, char** argv) {
 
   Object** objects;
   objects = malloc(sizeof(Object*)*2);
-  objects[0] = malloc(sizeof(Object));
+
+  read_scene(objects, argv[1]);
+ /* objects[0] = malloc(sizeof(Object));
   objects[0]->kind = 0;
-  objects[0]->cylinder.radius = 2;
+  objects[0]->sphere.radius = 2;
   // object[0]->teapot.handle_length = 2;
-  objects[0]->cylinder.center[0] = 0;
-  objects[0]->cylinder.center[1] = 0;
-  objects[0]->cylinder.center[2] = 20;
-  objects[1] = NULL;
+  objects[0]->sphere.center[0] = 0;
+  objects[0]->sphere.center[1] = 0;
+  objects[0]->sphere.center[2] = 20;
+  objects[1] = NULL;*/
   
   double cx = 0;
   double cy = 0;
-  double h = 0.7;
-  double w = 0.7;
+  double h = 0.5;
+  double w = 0.5;
 
   int M = 20;
   int N = 20;
 
+		//normalize(objects[0]->sphere.center);
+
   double pixheight = h / M;
   double pixwidth = w / N;
-  for (int y = 0; y < M; y += 1) {
-    for (int x = 0; x < N; x += 1) {
+  int y;
+  for (y = 0; y < M; y += 1) {
+  	int x;
+    for (x = 0; x < N; x += 1) {
       double Ro[3] = {0, 0, 0};
       // Rd = normalize(P - Ro)
       double Rd[3] = {
@@ -131,14 +148,15 @@ int main() {
       normalize(Rd);
 
       double best_t = INFINITY;
-      for (int i=0; objects[i] != 0; i += 1) {
+      int i;
+      for (i=0; objects[i] != 0; i += 1) {
 	double t = 0;
 
 	switch(objects[i]->kind) {
-	case 0:
-	  t = cylinder_intersection(Ro, Rd,
-				    objects[i]->cylinder.center,
-				    objects[i]->cylinder.radius);
+	case 1:
+	  t = sphere_intersection(Ro, Rd,
+				    objects[i]->sphere.center,
+				    objects[i]->sphere.radius);
 	  break;
 	default:
 	  // Horrible error

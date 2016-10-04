@@ -1,6 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "Parser.h"
 
 int line = 1;
 
@@ -83,7 +81,7 @@ double next_number(FILE* json) {
 	fscanf(json, "%lf", &value);
 	//printf("%s\n", &temp);
 	// TODO: Error check this..
-	printf("%lf\n",value);
+	//printf("%lf\n",value);
 	return value;
 }
 
@@ -91,6 +89,7 @@ double* next_vector(FILE* json) {
 	double* v = malloc(3*sizeof(double));
 	expect_c(json, '[');
 	skip_ws(json);
+	//printf("num: %d",next_number(json));
 	v[0] = next_number(json);
 	skip_ws(json);
 	expect_c(json, ',');
@@ -105,8 +104,143 @@ double* next_vector(FILE* json) {
 	return v;
 }
 
+Object* read_camera(FILE* filename) {
+	Object* object = malloc(sizeof(Object));
+	object -> kind = 0;
+	int c;
+	
+	while (1) {
+		c = next_c(filename);
+		if (c == '}') {
+			// stop parsing this object
+			break;
+		} else if (c == ',') {
+			// read another field
+			skip_ws(filename);
+			char* key = next_string(filename);
+			skip_ws(filename);
+			expect_c(filename, ':');
+			skip_ws(filename);
+			if (strcmp(key, "width") == 0){
+				object->camera.width = next_number(filename);
+			} else if (strcmp(key, "height") == 0){
+				object->camera.height = next_number(filename);
+			} else {
+				fprintf(stderr, "Error: Unknown property, \"%s\", on line %d.\n",
+				key, line);
+				exit(1);
+			}
 
-void read_scene(char* filename) {
+			skip_ws(filename);
+		} else {
+			fprintf(stderr, "Error: Unexpected value on line %d\n", line);
+			exit(1);
+		}
+	}
+
+	return object;
+}
+
+Object* read_sphere(FILE* filename) {
+	Object* object = malloc(sizeof(Object));
+	object -> kind = 1;
+	int c;
+	
+	while (1) {
+	// , }
+		c = next_c(filename);
+		if (c == '}') {
+			// stop parsing this object
+			break;
+		} else if (c == ',') {
+			// read another field
+			skip_ws(filename);
+			char* key = next_string(filename);
+			skip_ws(filename);
+			expect_c(filename, ':');
+			skip_ws(filename);
+			if (strcmp(key, "radius") == 0) {
+				object->sphere.radius = next_number(filename);
+			} else if (strcmp(key, "color") == 0){
+				double* vector = next_vector(filename);
+				object->sphere.color[0] = vector[0];
+				object->sphere.color[1] = vector[1];
+				object->sphere.color[2] = vector[2];
+			} else if (strcmp(key, "center") == 0){
+				double* vector = next_vector(filename);
+				object->sphere.center[0] = vector[0];
+				object->sphere.center[1] = vector[1];
+				//printf("center %d\n", vector[1]);
+				object->sphere.center[2] = vector[2];
+			} else {
+				fprintf(stderr, "Error: Unknown property, \"%s\", on line %d.\n",
+				key, line);
+				exit(1);
+				//char* value = next_string(json);
+			}
+
+			skip_ws(filename);
+		} else {
+			fprintf(stderr, "Error: Unexpected value on line %d\n", line);
+			exit(1);
+		}
+	}
+	//printf("type is %d\n, center1 is %lf\n", object->kind, object->sphere.center[1]);
+	return object;
+}
+
+Object* read_plane(FILE* filename) {
+	Object* object = malloc(sizeof(Object));
+	object -> kind = 2;
+	int c;
+	
+	while (1) {
+	// , }
+		c = next_c(filename);
+		if (c == '}') {
+			// stop parsing this object
+			break;
+		} else if (c == ',') {
+			// read another field
+			skip_ws(filename);
+			char* key = next_string(filename);
+			skip_ws(filename);
+			expect_c(filename, ':');
+			skip_ws(filename);
+			if (strcmp(key, "position") == 0) {
+				double* vector = next_vector(filename);
+				object->plane.position[0] = vector[0];
+				object->plane.position[1] = vector[1];
+				object->plane.position[2] = vector[2];
+			} else if (strcmp(key, "color") == 0){
+				double* vector = next_vector(filename);
+				object->plane.color[0] = vector[0];
+				object->plane.color[1] = vector[1];
+				object->plane.color[2] = vector[2];
+			} else if (strcmp(key, "normal") == 0){
+				double* vector = next_vector(filename);
+				object->plane.normal[0] = vector[0];
+				object->plane.normal[1] = vector[1];
+				object->plane.normal[2] = vector[2];
+			} else {
+				fprintf(stderr, "Error: Unknown property, \"%s\", on line %d.\n",
+				key, line);
+				exit(1);
+				//char* value = next_string(json);
+			}
+
+			skip_ws(filename);
+		} else {
+			fprintf(stderr, "Error: Unexpected value on line %d\n", line);
+			exit(1);
+		}
+	}
+
+	return object;
+}
+
+
+void read_scene(Object** objects, char* filename) {
 	int c;
 	FILE* json = fopen(filename, "r");
 
@@ -122,6 +256,7 @@ void read_scene(char* filename) {
 
 	skip_ws(json);
 
+	int numObjs = 0;
 	// Find the objects
 
 	while (1) {
@@ -149,21 +284,32 @@ void read_scene(char* filename) {
 
 			char* value = next_string(json);
 
+			objects[numObjs] = malloc(sizeof(Object));
+
+			skip_ws(json);
 			//STORE STUFF HERE
 			if (strcmp(value, "camera") == 0) {
+				//printf("storing cam in: %d\n",numObjs);
+				objects[numObjs] = read_camera(json);
 	
 			} else if (strcmp(value, "sphere") == 0) {
+				objects[numObjs] = read_sphere(json);
+				//printf("storing sph in: %d\n",numObjs);
 	
 			} else if (strcmp(value, "plane") == 0) {
+				objects[numObjs] = read_plane(json);
+			//	printf("storing pla in: %d\n",numObjs);
 	
 			} else {
 				fprintf(stderr, "Error: Unknown type, \"%s\", on line number %d.\n", value, line);
 				exit(1);
 			}
 
-			skip_ws(json);
+			numObjs++;
 
-			while (1) {
+			
+
+			/*while (1) {
 			// , }
 				c = next_c(json);
 				if (c == '}') {
@@ -196,7 +342,7 @@ void read_scene(char* filename) {
 					fprintf(stderr, "Error: Unexpected value on line %d\n", line);
 					exit(1);
 				}
-			}
+			}*/
 			skip_ws(json);
 			c = next_c(json);
 			if (c == ',') {
@@ -213,7 +359,13 @@ void read_scene(char* filename) {
 	}
 }
 
-int main(int c, char** argv) {
-read_scene(argv[1]);
-return 0;
-}
+/*int main(int c, char** argv) {
+	Object** objects;
+	objects = malloc(sizeof(Object*)*2);
+	read_scene(objects, argv[1]);
+	//puts("reading");
+	//printf("type: %d width %lf height %lf\n", objects[0]->kind, objects[0]->camera.width, objects[0]->camera.height);
+	//printf("type: %d color %lf %lf %lf center %lf %lf %lf radius %lf\n", objects[1]->kind, objects[1]->sphere.color[0], objects[1]->sphere.color[1], objects[1]->sphere.color[2], objects[1]->sphere.center[0], objects[1]->sphere.center[1], objects[1]->sphere.center[2], objects[1]->sphere.radius);
+	//printf("type: %d color %lf %lf %lf position %lf %lf %lf normal %lf %lf %lf\n", objects[2]->kind, objects[2]->plane.color[0], objects[2]->plane.color[1], objects[2]->plane.color[2], objects[2]->plane.position[0], objects[2]->plane.position[1], objects[2]->plane.position[2], objects[2]->plane.normal[0], objects[2]->plane.normal[1], objects[2]->plane.normal[2]);
+	return 0;
+}*/
