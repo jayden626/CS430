@@ -119,16 +119,16 @@ double plane_intersection(double* Ro, double* Rd, double* point, double* N){
 
 int main(int argc, char** argv) {
 
-  Object** objects;
-  objects = malloc(sizeof(Object*)*2);
-  RGBpixel* pixmap;
-  FILE* input;
-  FILE* output;
-  int convertToNumber;
-  int M;
-  int N;
+	Object** objects;
+	objects = malloc(sizeof(Object*)*2);
+	RGBpixel* pixmap;
+	FILE* input;
+	FILE* output;
+	int convertToNumber;
+	int M;
+	int N;
 
-  //Reading in arguements and checking for errors
+	//Reading in arguements and checking for errors
 	if(argc != 5){
 		fprintf(stderr, "Error: Wrong amount of arguements. Correct format is raycast width height input output");
 		return 1;
@@ -139,18 +139,18 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 	N = convertToNumber;
-	
+
 	convertToNumber = (int) strtol(argv[2],(char **)NULL,10);
 	if(convertToNumber <= 0){
 		fprintf(stderr, "Error: Height must be positive");
 		return 1;
 	}
 	M = convertToNumber;
-	
+
 	/*input = fopen(argv[3], "r");
 	if(!input){
-		fprintf(stderr, "Error: Cannot open input file.");
-		return 1;
+	fprintf(stderr, "Error: Cannot open input file.");
+	return 1;
 	}*/
 	output = fopen(argv[4], "w");
 	if(!output){
@@ -160,15 +160,15 @@ int main(int argc, char** argv) {
 
 	pixmap = malloc(sizeof(RGBpixel)*M*N*3);
 
- 	int numObjs = read_scene(objects, argv[3]);
-printf("num: %d\n", numObjs);
-  double cx = 0;
-  double cy = 0;
-  //from the camera
-  double h;
-  double w;
-  int camFound = 0;
- 	int scanCam;
+	int numObjs = read_scene(objects, argv[3]);
+	printf("num: %d\n", numObjs);
+	double cx = 0;
+	double cy = 0;
+	//from the camera
+	double h;
+	double w;
+	int camFound = 0;
+	int scanCam;
 	for (scanCam=0; scanCam < numObjs; scanCam += 1) {
 		if(objects[scanCam]->kind == 0){
 			h = objects[scanCam]->camera.height;
@@ -181,83 +181,77 @@ printf("num: %d\n", numObjs);
 		fprintf(stderr,"Error: Camera not found.\n");
 		exit(1);
 	}
-	
-			
-		//normalize(objects[0]->sphere.center);
 
-  double pixheight = h / M;
-  double pixwidth = w / N;
-  int y;
-  for (y = 0; y < M; y += 1) {
-  	int x;
-    for (x = 0; x < N; x += 1) {
-    	double color[3] = {0,0,0};
-      double Ro[3] = {0, 0, 0};
-      // Rd = normalize(P - Ro)
-      double Rd[3] = {
-			cx - (w/2) + pixwidth * (x + 0.5),
-			cy - (h/2) + pixheight * (y + 0.5),
-			1
-      };
-      normalize(Rd);
 
-      double best_t = INFINITY;
-      int i;
-      for (i=0; i < numObjs; i += 1) {
-	double t = 0;
-	int kind = objects[i]->kind;
-	switch(objects[i]->kind) {
-	
-	case 0:
-		break;
-	
-	case 1:
-	  t = sphere_intersection(Ro, Rd,
-				    objects[i]->sphere.center,
-				    objects[i]->sphere.radius);
-	  break;
+	//normalize(objects[0]->sphere.center);
 
-  	case 2:
-	  t = plane_intersection(Ro, Rd,
-				    objects[i]->plane.position,
-				    objects[i]->plane.normal);
-	  break;
-	default:
-	  fprintf(stderr,"Error: Cannot process object of kind %d\n", objects[i]->kind);
-	  exit(1);
-	}
-	if (t > 0 && t < best_t){
-		best_t = t;
-		if(kind == 1){
-			color[0] = objects[i]->sphere.color[0];
-			color[1] = objects[i]->sphere.color[1];
-			color[2] = objects[i]->sphere.color[2];
-			//printf("color: %lf %lf %lf \n",color[0], color[1], color[2]);
+	double pixheight = h / M;
+	double pixwidth = w / N;
+	int y;
+	for (y = 0; y < M; y += 1) {
+		int x;
+		for (x = 0; x < N; x += 1) {
+			double color[3] = {0,0,0};
+			double Ro[3] = {0, 0, 0};
+			// Rd = normalize(P - Ro)
+			double Rd[3] = {cx - (w/2) + pixwidth * (x + 0.5), cy - (h/2) + pixheight * (y + 0.5), 1};
+			normalize(Rd);
+
+			double best_t = INFINITY;
+			int i;
+			for (i=0; i < numObjs; i += 1) {
+				double t = 0;
+				int kind = objects[i]->kind;
+				switch(objects[i]->kind) {
+					case 0:
+					break;
+
+					case 1:
+					t = sphere_intersection(Ro, Rd,
+					objects[i]->sphere.center,
+					objects[i]->sphere.radius);
+					break;
+
+					case 2:
+					t = plane_intersection(Ro, Rd,
+					objects[i]->plane.position,
+					objects[i]->plane.normal);
+					break;
+					default:
+					fprintf(stderr,"Error: Cannot process object of kind %d\n",objects[i]->kind);
+					exit(1);
+				}
+				if (t > 0 && t < best_t){
+					best_t = t;
+					if(kind == 1){
+						color[0] = objects[i]->sphere.color[0];
+						color[1] = objects[i]->sphere.color[1];
+						color[2] = objects[i]->sphere.color[2];
+						//printf("color: %lf %lf %lf \n",color[0], color[1], color[2]);
+					}
+					else if(kind == 2){
+						color[0] = objects[i]->plane.color[0];
+						color[1] = objects[i]->plane.color[1];
+						color[2] = objects[i]->plane.color[2];
+					}
+				}
+			}
+			if (best_t > 0 && best_t != INFINITY) {
+			printf("#");
+			//printf("y: %d x: %d position: %d", y, x, y*M*3+x*3);
+			} else {
+			printf(".");
+			}
+
+			pixmap[M*M*3-(y+1)*M*3 + x*3] = color[0];
+			pixmap[M*M*3-(y+1)*M*3 + x*3+1] = color[1];
+			pixmap[M*M*3-(y+1)*M*3 + x*3+2] = color[2];
+
 		}
-		else if(kind == 2){
-			color[0] = objects[i]->plane.color[0];
-			color[1] = objects[i]->plane.color[1];
-			color[2] = objects[i]->plane.color[2];
-		}
+		printf("\n");
 	}
-		
-      }
-      if (best_t > 0 && best_t != INFINITY) {
-		printf("#");
-		//printf("y: %d x: %d position: %d", y, x, y*M*3+x*3);
-      } else {
-		printf(".");
-      }
 
-  		pixmap[y*M*3 + x*3] = color[0];
-		pixmap[y*M*3 + x*3+1] = color[1];
-		pixmap[y*M*3 + x*3+2] = color[2];
-      
-    }
-    printf("\n");
-  }
+	writeP3(output, pixmap, N, M, 1);
 
-  writeP3(output, pixmap, N, M, 1);
-  
-  return 0;
+	return 0;
 }
