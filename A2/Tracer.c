@@ -80,7 +80,7 @@ double cylinder_intersection(double* Ro, double* Rd,
 double sphere_intersection(double* Ro, double* Rd, double* Cs, double r){
 
 	//printf("ray direction: %lf %lf %lf\n", Rd[0], Rd[1],Rd[2]);
-	//printf("center: %lf %lf %lf\n", Cs[0], Cs[1],Cs[2]);
+//	printf("center: %lf %lf %lf\n", Cs[0], Cs[1],Cs[2]);
 	// Rd is normalised, A = 1; double A = (sqr(Rd[0]) + sqr(Rd[1]) + sqr(Rd[2]));
 	double B = 2*(Rd[0]*(Ro[0] - Cs[0]) + Rd[1]*(Ro[1] - Cs[1]) + Rd[2]*(Ro[2] - Cs[2]));
 	double C = sqr(Ro[0]-Cs[0]) + sqr(Ro[1]-Cs[1]) + sqr(Ro[2]-Cs[2]) - sqr(r);
@@ -114,18 +114,18 @@ int main(int c, char** argv) {
 
   read_scene(objects, argv[1]);
  /* objects[0] = malloc(sizeof(Object));
-  objects[0]->kind = 0;
+  objects[0]->kind = 1;
   objects[0]->sphere.radius = 2;
   // object[0]->teapot.handle_length = 2;
   objects[0]->sphere.center[0] = 0;
   objects[0]->sphere.center[1] = 0;
-  objects[0]->sphere.center[2] = 20;
+  objects[0]->sphere.center[2] = 0;
   objects[1] = NULL;*/
   
   double cx = 0;
   double cy = 0;
-  double h = 0.5;
-  double w = 0.5;
+  double h = 0.7;
+  double w = 0.7;
 
   int M = 20;
   int N = 20;
@@ -141,9 +141,9 @@ int main(int c, char** argv) {
       double Ro[3] = {0, 0, 0};
       // Rd = normalize(P - Ro)
       double Rd[3] = {
-	cx - (w/2) + pixwidth * (x + 0.5),
-	cy - (h/2) + pixheight * (y + 0.5),
-	1
+			cx - (w/2) + pixwidth * (x + 0.5),
+			cy - (h/2) + pixheight * (y + 0.5),
+			1
       };
       normalize(Rd);
 
