@@ -166,7 +166,7 @@ Object* read_sphere(FILE* filename) {
 				object->sphere.color[0] = vector[0];
 				object->sphere.color[1] = vector[1];
 				object->sphere.color[2] = vector[2];
-			} else if (strcmp(key, "center") == 0){
+			} else if (strcmp(key, "position") == 0){
 				double* vector = next_vector(filename);
 				object->sphere.center[0] = vector[0];
 				object->sphere.center[1] = vector[1];
@@ -240,7 +240,7 @@ Object* read_plane(FILE* filename) {
 }
 
 
-void read_scene(Object** objects, char* filename) {
+int read_scene(Object** objects, char* filename) {
 	int c;
 	FILE* json = fopen(filename, "r");
 
@@ -307,8 +307,6 @@ void read_scene(Object** objects, char* filename) {
 
 			numObjs++;
 
-			
-
 			/*while (1) {
 			// , }
 				c = next_c(json);
@@ -350,7 +348,7 @@ void read_scene(Object** objects, char* filename) {
 				skip_ws(json);
 			} else if (c == ']') {
 				fclose(json);
-				return;
+				return numObjs;
 			} else {
 				fprintf(stderr, "Error: Expecting ',' or ']' on line %d.\n", line);
 				exit(1);
