@@ -11,7 +11,7 @@
  * Ex: raycast 100 200 input.json output.ppm
  */
  
-#include "raycaster.h"
+#include "raycast.h"
 
 /* Method to return the square of the passed double. Used to make code easier to read
  *
@@ -189,7 +189,7 @@ int main(int argc, char** argv) {
 	objects = malloc(sizeof(Object*)*2*128);
 	RGBpixel* pixmap; //The pixel map used for storing pixel values
 	FILE* input;
-	FILE* output;
+	
 	int imgHeight; //Height of the image in pixels
 	int imgWidth; //Width of the image in pixels
 
@@ -207,12 +207,6 @@ int main(int argc, char** argv) {
 	imgHeight = (int) strtol(argv[2],(char **)NULL,10);
 	if(imgHeight <= 0){
 		fprintf(stderr, "Error: Height must be positive");
-		return 1;
-	}
-
-	output = fopen(argv[4], "w");
-	if(!output){
-		fprintf(stderr, "Error: Cannot open output file.");
 		return 1;
 	}
 
@@ -320,6 +314,11 @@ int main(int argc, char** argv) {
 		printf("\n");
 	}
 
+	FILE* output = fopen(argv[4], "w");
+	if(!output){
+		fprintf(stderr, "Error: Cannot open output file.");
+		return 1;
+	}
 	//Writes the pixel map to the output file.
 	writeP6(output, pixmap, imgWidth, imgHeight, 255);
 
