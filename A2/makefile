@@ -1,11 +1,11 @@
-Tracer.exe : Tracer.o Parser.o ppmrw.o
-	gcc Tracer.o Parser.o ppmrw.o -o Tracer.exe
+raycast.exe : raycast.o parser.o ppmrw.o
+	gcc raycast.o parser.o ppmrw.o -o raycast.exe
 
-Tracer.o : Tracer.c
-	gcc -c Tracer.c
+raycast.o : raycast.c
+	gcc -c raycast.c
 
-Parser.o : Parser.c
-	gcc -c Parser.c
+parser.o : parser.c
+	gcc -c parser.c
 
 ppmrw.o : ppmrw.c
 	gcc -c ppmrw.c

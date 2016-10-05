@@ -11,9 +11,7 @@
  * Ex: raycast 100 200 input.json output.ppm
  */
  
-#include <math.h>
-#include "Parser.h"
-#include "ppmrw.h"
+#include "raycaster.h"
 
 /* Method to return the square of the passed double. Used to make code easier to read
  *
