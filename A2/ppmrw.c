@@ -42,7 +42,7 @@ int ppmrwMain(int argc, char* argv[]) {
 		return 1;
 	}
 	output = fopen(argv[3], "w");
-	if(!input){
+	if(!output){
 		fprintf(stderr, "Error: Cannot open output file.");
 		return 1;
 	}
