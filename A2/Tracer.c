@@ -314,16 +314,16 @@ int main(int argc, char** argv) {
 			}
 
 			//Setting the color of the pixel to the color vector. Flips the y-axis
-			pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3] = color[0];
-			pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3+1] = color[1];
-			pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3+2] = color[2];
+			pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3] = color[0]*255;
+			pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3+1] = color[1]*255;
+			pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3+2] = color[2]*255;
 
 		}
 		printf("\n");
 	}
 
 	//Writes the pixel map to the output file.
-	writeP6(output, pixmap, imgWidth, imgHeight, 1);
+	writeP6(output, pixmap, imgWidth, imgHeight, 255);
 
 	return 0;
 }

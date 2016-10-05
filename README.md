@@ -13,3 +13,14 @@ NOTE: Will not throw an error if the width * height is less than or greater than
 Author: Jayden Urch
 Date: 09/16/2016
 Student No: 5388406 / jsu22
+
+## Project 2 - Raycaster
+
+This program can be used to read in a JSON scene, use raytracing techniques to build an image, and write the image to a P6 PPM file.
+
+Correct format is raycast width height input output
+* Ex: raycast 100 200 input.json output.ppm
+
+Author: Jayden Urch
+Date: 09/16/2016
+Student No: 5388406 / jsu22
