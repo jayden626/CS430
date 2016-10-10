@@ -275,7 +275,9 @@ int main(int argc, char** argv) {
 						objects[i]->plane.position,
 						objects[i]->plane.normal);
 					break;
-					
+
+					case 3:
+					break;
 					default:
 						fprintf(stderr,"Error: Cannot process object of kind %d\n",objects[i]->kind);
 						exit(1);
@@ -285,9 +287,9 @@ int main(int argc, char** argv) {
 				if (t > 0 && t < best_t){
 					best_t = t;
 					if(kind == 1){
-						color[0] = objects[i]->sphere.color[0];
-						color[1] = objects[i]->sphere.color[1];
-						color[2] = objects[i]->sphere.color[2];
+						color[0] = objects[i]->sphere.diffuseColor[0];
+						color[1] = objects[i]->sphere.diffuseColor[1];
+						color[2] = objects[i]->sphere.diffuseColor[2];
 						//printf("color: %lf %lf %lf \n",color[0], color[1], color[2]);
 					}
 					else if(kind == 2){

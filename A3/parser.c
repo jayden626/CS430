@@ -166,7 +166,8 @@ Object* read_sphere(FILE* filename) {
 	Object* object = malloc(sizeof(Object));
 	object -> kind = 1;
 	int c;
-	int colorCheck = 0;
+	int dColorCheck = 0;
+	int sColorCheck = 0;
 	int radiusCheck = 0;
 	int positionCheck = 0;
 	
@@ -186,12 +187,18 @@ Object* read_sphere(FILE* filename) {
 			if (strcmp(key, "radius") == 0) {
 				object->sphere.radius = next_number(filename);
 				radiusCheck = 1;
-			} else if (strcmp(key, "color") == 0){
+			} else if (strcmp(key, "diffuse_color") == 0){
 				double* vector = next_vector(filename);
-				object->sphere.color[0] = vector[0];
-				object->sphere.color[1] = vector[1];
-				object->sphere.color[2] = vector[2];
-				colorCheck = 1;
+				object->sphere.diffuseColor[0] = vector[0];
+				object->sphere.diffuseColor[1] = vector[1];
+				object->sphere.diffuseColor[2] = vector[2];
+				dColorCheck = 1;
+			} else if (strcmp(key, "specular_color") == 0){
+				double* vector = next_vector(filename);
+				object->sphere.specularColor[0] = vector[0];
+				object->sphere.specularColor[1] = vector[1];
+				object->sphere.specularColor[2] = vector[2];
+				sColorCheck = 1;
 			} else if (strcmp(key, "position") == 0){
 				double* vector = next_vector(filename);
 				object->sphere.center[0] = vector[0];
@@ -211,8 +218,8 @@ Object* read_sphere(FILE* filename) {
 		}
 	}
 
-	if(colorCheck != 1 || radiusCheck != 1 || positionCheck != 1){
-		fprintf(stderr, "Error: Sphere is missing parameters");
+	if(dColorCheck != 1 || sColorCheck != 1 || radiusCheck != 1 || positionCheck != 1){
+		fprintf(stderr, "Error: Sphere is missing parameters %d %d %d %d", dColorCheck, sColorCheck, radiusCheck, positionCheck);
 		exit(1);
 	}
 	
@@ -278,6 +285,87 @@ Object* read_plane(FILE* filename) {
 	return object;
 }
 
+Object* read_light(FILE* filename) {
+	Object* object = malloc(sizeof(Object));
+	object -> kind = 3;
+	int c;
+	int colorCheck = 0;
+	int positionCheck = 0;
+	//int directionCheck = 0;
+
+	//initializing radial and angular to 0
+	object->light.radial[0] = 0;
+	object->light.radial[1] = 0;
+	object->light.radial[2] = 0;
+	object->light.angularA0 = 0;
+
+	//initialize light direction TODO:remove? mistake in example .json?
+	object->light.direction[0] = 0;
+	object->light.direction[1] = 0;
+	object->light.direction[2] = 0;
+
+	while (1) {
+		c = next_c(filename);
+		if (c == '}') {
+			// stop parsing this object
+			break;
+		} else if (c == ',') {
+			// read another field
+			skip_ws(filename);
+			char* key = next_string(filename);
+			skip_ws(filename);
+			expect_c(filename, ':');
+			skip_ws(filename);
+			if (strcmp(key, "position") == 0) {
+				double* vector = next_vector(filename);
+				object->light.position[0] = vector[0];
+				object->light.position[1] = vector[1];
+				object->light.position[2] = vector[2];
+				positionCheck = 1;
+			} else if (strcmp(key, "color") == 0){
+				double* vector = next_vector(filename);
+				object->light.color[0] = vector[0];
+				object->light.color[1] = vector[1];
+				object->light.color[2] = vector[2];
+				colorCheck = 1;
+			} else if (strcmp(key, "direction") == 0){
+				double* vector = next_vector(filename);
+				object->light.direction[0] = vector[0];
+				object->light.direction[1] = vector[1];
+				object->light.direction[2] = vector[2];
+				//directionCheck = 1;
+			} else if (strcmp(key, "radial-a2") == 0){
+				double temp = next_number(filename);
+				object->light.radial[2] = temp;
+			} else if (strcmp(key, "radial-a1") == 0){
+				double temp = next_number(filename);
+				object->light.radial[1] = temp;
+			} else if (strcmp(key, "radial-a0") == 0){
+				double temp = next_number(filename);
+				object->light.radial[0] = temp;
+			} else if (strcmp(key, "angular-a0") == 0){
+				double temp = next_number(filename);
+				object->light.angularA0 = temp;
+			} else {
+				fprintf(stderr, "Error: Unknown property, \"%s\", on line %d.\n",
+				key, line);
+				exit(1);
+			}
+
+			skip_ws(filename);
+		} else {
+			fprintf(stderr, "Error: Unexpected value on line %d\n", line);
+			exit(1);
+		}
+	}
+
+	if(colorCheck != 1 || positionCheck != 1){
+		fprintf(stderr, "Error: light is missing parameters");
+		exit(1);
+	}
+
+	return object;
+}
 
 int read_scene(Object** objects, char* filename) {
 	int c;
@@ -341,7 +429,9 @@ int read_scene(Object** objects, char* filename) {
 
 				} else if (strcmp(value, "plane") == 0) {
 					objects[numObjs] = read_plane(json);
-
+					
+				} else if (strcmp(value, "light") == 0) {
+					objects[numObjs] = read_light(json);
 				} else {
 					fprintf(stderr, "Error: Unknown type, \"%s\", on line number %d.\n", value, line);
 					exit(1);
