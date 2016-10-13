@@ -27,7 +27,7 @@ typedef struct {
 			double position[3];
 			double direction[3];
 			double radial[3];
-			double angularA0;
+			double angular[3];
 		} light;
 	};
 } Object;

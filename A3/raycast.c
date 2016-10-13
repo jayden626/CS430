@@ -187,6 +187,9 @@ int main(int argc, char** argv) {
 
 	Object** objects; //Array of objects in the scene
 	objects = malloc(sizeof(Object*)*2*128);
+	Object** lights;
+	lights = malloc(sizeof(Object*)*2*128);
+	//Object* cam = NULL;// malloc(sizeof(Object));
 	RGBpixel* pixmap; //The pixel map used for storing pixel values
 	FILE* input;
 	
@@ -214,17 +217,19 @@ int main(int argc, char** argv) {
 	pixmap = malloc(sizeof(RGBpixel)*imgHeight*imgWidth*3);
 
 	//Using the parser to read the scene, store all objects in the objects array and return the number of objects
-	int numObjs = read_scene(objects, argv[3]);
+	read_scene(objects, lights, argv[3]);
+	
 	double cx = 0; //Center of the x pixel
 	double cy = 0; //Center of the y pixel
 
-	double camHeight;
-	double camWidth;
+	double camHeight;// = cam->camera.height;
+	double camWidth;// = cam->camera.width;
+
 
 	//Scanning the objects list for the first camera and setting the view plane width and height
 	int scanCam;
 	int camFound = 0; //boolean used to specify if the camera has been found
-	for (scanCam = 0; scanCam < numObjs; scanCam++) {
+	for (scanCam = 0; objects[scanCam] != NULL; scanCam++) {
 		if(objects[scanCam]->kind == 0){
 			camHeight = objects[scanCam]->camera.height;
 			camWidth = objects[scanCam]->camera.width;
@@ -254,10 +259,11 @@ int main(int argc, char** argv) {
 			normalize(Rd);
 
 			double best_t = INFINITY; //Used to find the closest intersection
+			int best_i = 0;
 
 			//Looping over all objects, checking for intersections with the current ray direction from the origin
 			int i;
-			for (i=0; i < numObjs; i += 1) {
+			for (i=0; objects[i] != NULL; i += 1) {
 				double t = 0;
 				int kind = objects[i]->kind;
 				switch(objects[i]->kind) {
@@ -286,7 +292,9 @@ int main(int argc, char** argv) {
 				//Then sets the color vector to that objects color.
 				if (t > 0 && t < best_t){
 					best_t = t;
-					if(kind == 1){
+					best_i = i;
+					
+					/*if(kind == 1){
 						color[0] = objects[i]->sphere.diffuseColor[0];
 						color[1] = objects[i]->sphere.diffuseColor[1];
 						color[2] = objects[i]->sphere.diffuseColor[2];
@@ -296,9 +304,10 @@ int main(int argc, char** argv) {
 						color[0] = objects[i]->plane.color[0];
 						color[1] = objects[i]->plane.color[1];
 						color[2] = objects[i]->plane.color[2];
-					}
+					}*/
 				}
 			}
+
 
 			//Can print the scene pixel by pixel to the terminal.
 			if (best_t > 0 && best_t != INFINITY) {
@@ -307,6 +316,8 @@ int main(int argc, char** argv) {
 				printf(".");
 			}
 
+			double initColor[3] = {0,0,0};
+			
 			//Setting the color of the pixel to the color vector. Flips the y-axis
 			pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3] = color[0]*255;
 			pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3+1] = color[1]*255;

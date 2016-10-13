@@ -7,7 +7,7 @@
  * and store the objects in an array
  */
 
-#include "Parser.h"
+#include "parser.h"
 
 int line = 1;
 
@@ -294,10 +294,12 @@ Object* read_light(FILE* filename) {
 	//int directionCheck = 0;
 
 	//initializing radial and angular to 0
-	object->light.radial[0] = 0;
+	object->light.radial[0] = 1;
 	object->light.radial[1] = 0;
 	object->light.radial[2] = 0;
-	object->light.angularA0 = 0;
+	object->light.angular[0] = 1;
+	object->light.angular[1] = 0;
+	object->light.angular[2] = 0;
 
 	//initialize light direction TODO:remove? mistake in example .json?
 	object->light.direction[0] = 0;
@@ -343,9 +345,15 @@ Object* read_light(FILE* filename) {
 			} else if (strcmp(key, "radial-a0") == 0){
 				double temp = next_number(filename);
 				object->light.radial[0] = temp;
+			} else if (strcmp(key, "angular-a2") == 0){
+				double temp = next_number(filename);
+				object->light.angular[2] = temp;
+			} else if (strcmp(key, "angular-a1") == 0){
+				double temp = next_number(filename);
+				object->light.angular[1] = temp;
 			} else if (strcmp(key, "angular-a0") == 0){
 				double temp = next_number(filename);
-				object->light.angularA0 = temp;
+				object->light.angular[0] = temp;
 			} else {
 				fprintf(stderr, "Error: Unknown property, \"%s\", on line %d.\n",
 				key, line);
@@ -367,7 +375,7 @@ Object* read_light(FILE* filename) {
 	return object;
 }
 
-int read_scene(Object** objects, char* filename) {
+void read_scene(Object** objects, Object** lights, char* filename) {
 	int c;
 	FILE* json = fopen(filename, "r");
 
@@ -389,6 +397,7 @@ int read_scene(Object** objects, char* filename) {
 	skip_ws(json);
 
 	int numObjs = 0;
+	int numLights = 0;
 	// Find the objects
 
 	while (1) {
@@ -417,27 +426,30 @@ int read_scene(Object** objects, char* filename) {
 
 				char* value = next_string(json);
 
-				objects[numObjs] = malloc(sizeof(Object));
+				
 
 				skip_ws(json);
 
 				if (strcmp(value, "camera") == 0) {
 					objects[numObjs] = read_camera(json);
+					numObjs++;
 
 				} else if (strcmp(value, "sphere") == 0) {
 					objects[numObjs] = read_sphere(json);
+					numObjs++;
 
 				} else if (strcmp(value, "plane") == 0) {
 					objects[numObjs] = read_plane(json);
+					numObjs++;
 					
 				} else if (strcmp(value, "light") == 0) {
-					objects[numObjs] = read_light(json);
+					lights[numLights] = read_light(json);
+					numLights++;
 				} else {
 					fprintf(stderr, "Error: Unknown type, \"%s\", on line number %d.\n", value, line);
 					exit(1);
 				}
 
-				numObjs++;
 			}
 			else{
 				expect_c(json, '}');
@@ -448,7 +460,7 @@ int read_scene(Object** objects, char* filename) {
 				skip_ws(json);
 			} else if (c == ']') {
 				fclose(json);
-				return numObjs;
+				return;// numObjs;
 			} else {
 				fprintf(stderr, "Error: Expecting ',' or ']' on line %d.\n", line);
 				exit(1);

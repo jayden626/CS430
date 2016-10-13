@@ -19,6 +19,6 @@ Object* read_camera(FILE* filename);
 Object* read_sphere(FILE* filename);
 Object* read_plane(FILE* filename);
 Object* read_light(FILE* filename);
-int read_scene(Object** objects, char* filename);
+void read_scene(Object** objects, Object** lights, char* filename);
 
 #endif
