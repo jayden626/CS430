@@ -4,7 +4,7 @@
 // Plymorphism in C
 
 typedef struct {
-	int kind; // 0 = camera, 1 = cylinder, 2 = sphere, 3 = light
+	int kind; // 0 = camera, 1 = sphere, 2 = plane, 3 = light
 	double color[3];
 	union {
 		struct {
@@ -18,7 +18,8 @@ typedef struct {
 			double radius;
 		} sphere;
 		struct {
-			double color[3];
+			double diffuseColor[3];
+			double specularColor[3];
 			double position[3];
 			double normal[3];
 		} plane;

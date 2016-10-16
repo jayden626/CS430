@@ -230,7 +230,8 @@ Object* read_plane(FILE* filename) {
 	Object* object = malloc(sizeof(Object));
 	object -> kind = 2;
 	int c;
-	int colorCheck = 0;
+	int sColorCheck = 0;
+	int dColorCheck = 0;
 	int positionCheck = 0;
 	int normalCheck = 0;
 
@@ -252,12 +253,18 @@ Object* read_plane(FILE* filename) {
 				object->plane.position[1] = vector[1];
 				object->plane.position[2] = vector[2];
 				positionCheck = 1;
-			} else if (strcmp(key, "color") == 0){
+			} else if (strcmp(key, "diffuse_color") == 0){
 				double* vector = next_vector(filename);
-				object->plane.color[0] = vector[0];
-				object->plane.color[1] = vector[1];
-				object->plane.color[2] = vector[2];
-				colorCheck = 1;
+				object->plane.diffuseColor[0] = vector[0];
+				object->plane.diffuseColor[1] = vector[1];
+				object->plane.diffuseColor[2] = vector[2];
+				dColorCheck = 1;
+			} else if (strcmp(key, "specular_color") == 0){
+				double* vector = next_vector(filename);
+				object->plane.specularColor[0] = vector[0];
+				object->plane.specularColor[1] = vector[1];
+				object->plane.specularColor[2] = vector[2];
+				sColorCheck = 1;
 			} else if (strcmp(key, "normal") == 0){
 				double* vector = next_vector(filename);
 				object->plane.normal[0] = vector[0];
@@ -277,7 +284,7 @@ Object* read_plane(FILE* filename) {
 		}
 	}
 
-	if(colorCheck != 1 || normalCheck != 1 || positionCheck != 1){
+	if(sColorCheck != 1 || dColorCheck != 1 || normalCheck != 1 || positionCheck != 1){
 		fprintf(stderr, "Error: Plane is missing parameters");
 		exit(1);
 	}

@@ -40,6 +40,54 @@ static inline void normalize(double* v) {
 	v[2] /= len;
 }
 
+double clamp(double color){
+	if(color < 0){
+		return 0;
+	}
+	else if(color > 1){
+		return 1;
+	}
+	return color;
+}
+
+double distance(double* v1, double* v2){
+	double distance = 0;
+	int i;
+	for(i=0; i<3; i++){
+		/*if(v1[i] == NULL || v2[i] == NULL){
+			fprintf(stderr, "Error calculating distance between vectors.");
+			exit(1);
+		}*/
+
+		distance += sqr(v1[i]-v2[i]);
+	}
+	
+	return sqrt(distance);
+}
+
+double* reflect (double* v, double* n){
+	double nDotV = (v[0]*n[0])+(v[1]*n[1])+(v[2]*n[2]);
+	double* result = malloc(sizeof(double)*3);
+
+	result[0] = v[0] - (2*nDotV*n[0]);
+	result[1] = v[1] - (2*nDotV*n[0]);
+	result[2] = v[2] - (2*nDotV*n[0]);
+
+	return result;
+}
+
+double dot (double* v1, double* v2){
+	return (v1[0]*v2[0])+(v1[1]*v2[1])+(v1[2]*v2[2]);
+}
+
+double* diffuse(double* Ron, double* Rdn, double* N, double* diffuse, double* specular){
+	double* diff = malloc(sizeof(double)*3);
+	
+}
+
+//static inline double* reflect(double* v){
+	
+
 /* Method to return the t value of a ray-cylinder intersection
  * Parameters: 		Ro: Ray origin
  *					Rd: Ray direction
@@ -125,7 +173,8 @@ double cylinderIntersection(double* Ro, double* Rd, double* C, double r) {
  */
 double sphereIntersection(double* Ro, double* Rd, double* Cs, double r){
 
-	// Rd is normalised, A = 1; double A = (sqr(Rd[0]) + sqr(Rd[1]) + sqr(Rd[2]));
+	// Rd is normalised, A = 1; 
+	double A = (sqr(Rd[0]) + sqr(Rd[1]) + sqr(Rd[2]));
 	double B = 2*(Rd[0]*(Ro[0] - Cs[0]) + Rd[1]*(Ro[1] - Cs[1]) + Rd[2]*(Ro[2] - Cs[2]));
 	double C = sqr(Ro[0]-Cs[0]) + sqr(Ro[1]-Cs[1]) + sqr(Ro[2]-Cs[2]) - sqr(r);
 
@@ -164,8 +213,8 @@ double sphereIntersection(double* Ro, double* Rd, double* Cs, double r){
 double planeIntersection(double* Ro, double* Rd, double* point, double* N){
 
 	double d = ((-point[0])*N[0])+((-point[1])*N[1])+((-point[2])*N[2]);
-	double VdotN = (Rd[0]*N[0])+(Rd[1]*N[1])+(Rd[2]*N[2]);
-	double RoDotN = (Ro[0]*N[0])+(Ro[1]*N[1])+(Ro[2]*N[2]);
+	double VdotN = dot(Rd,N);//(Rd[0]*N[0])+(Rd[1]*N[1])+(Rd[2]*N[2]);
+	double RoDotN = dot(Ro,N);//(Ro[0]*N[0])+(Ro[1]*N[1])+(Ro[2]*N[2]);
 
 	double t = (-(RoDotN+d))/VdotN;
 	
@@ -259,7 +308,7 @@ int main(int argc, char** argv) {
 			normalize(Rd);
 
 			double best_t = INFINITY; //Used to find the closest intersection
-			int best_i = 0;
+			int best_i = -1;
 
 			//Looping over all objects, checking for intersections with the current ray direction from the origin
 			int i;
@@ -308,20 +357,110 @@ int main(int argc, char** argv) {
 				}
 			}
 
+			//Loop over all lights looking for objects in the way
+			int j;
+			for(j=0; lights[j] != NULL; j++){
 
-			//Can print the scene pixel by pixel to the terminal.
-			if (best_t > 0 && best_t != INFINITY) {
-				printf("#");
-			} else {
-				printf(".");
-			}
+				double Ron[3];
+				double Rdn[3];
+				int isInShadow = 0;
 
-			double initColor[3] = {0,0,0};
+				int n;
+				for(n=0; n<3; n++){
+					Ron[n] = best_t*Rd[n] + Ro[n];
+					Rdn[n] = lights[j]->light.position[n] - Ron[n];
+				}
+
+				double distanceToLight = distance(Ron, lights[j]->light.position);
+
+				//Looping over all objects
+				int k;
+				for (k=0; objects[k] != NULL; k++) {
+					//skip if the current object is the one we are getting the color for
+					if(objects[k] == objects[best_i]) continue;
+					
+					double lightT = -1;
+					int kind = objects[k]->kind;
+					switch(objects[k]->kind) {
+						case 0:
+						break;
+
+						case 1:
+							lightT = sphereIntersection(Ron, Rdn,
+							objects[k]->sphere.center,
+							objects[k]->sphere.radius);
+						break;
+
+						case 2:
+							lightT = planeIntersection(Ron, Rdn,
+							objects[k]->plane.position,
+							objects[k]->plane.normal);
+						break;
+
+						case 3:
+						break;
+						default:
+							fprintf(stderr,"Error: Cannot process object of kind %d\n",objects[i]->kind);
+							exit(1);
+					}
+
+					if(lightT > -1 && lightT < distanceToLight){
+						isInShadow = 1;
+						break;
+					}
+				}
+
+				if(isInShadow == 0 && best_i >= 0){
+					//TODO: Lighting calculation
+					double* N = malloc(sizeof(double)*3);
+					double* diffuse;
+					double* specular;
+					if(objects[best_i]->kind == 1){
+						N[0] = Ron[0] - objects[best_i]->sphere.center[0];
+						N[1] = Ron[1] - objects[best_i]->sphere.center[1];
+						N[2] = Ron[2] - objects[best_i]->sphere.center[2];
+						diffuse = objects[best_i]->sphere.diffuseColor;
+						specular = objects[best_i]->sphere.specularColor;
+						
+					}
+					else if(objects[best_i]->kind == 2){
+						N = objects[best_i]->plane.normal;
+						diffuse = objects[best_i]->plane.diffuseColor;
+						specular = objects[best_i]->plane.specularColor;
+						
+					}
+					else{
+						fprintf(stderr, "Error: Cannot calculate lighting.");
+						exit(1);
+					}
+
+					double* L = Rdn;
+					double* R = reflect(L,N);
+					double* V = Rd;
+
+					double fang = 1; //TODO: SPOTLIGHT
+					double frad = 1/(lights[j]->light.angular[2]*pow(distanceToLight,2) + lights[j]->light.angular[1]*distanceToLight + lights[j]->light.angular[0]);
+					//double spec;
+					//double* diff = diffuse(Ron, Rdn, N, diffuse, specular);
+					color[0] += fang*frad*(diffuse[0] + specular[0]);
+					color[1] += fang*frad*(diffuse[1] + specular[1]);
+					color[2] += fang*frad*(diffuse[2] + specular[2]);
+				}
+			}//End of light loop
+
+				//Can print the scene pixel by pixel to the terminal.
+				if (best_t > 0 && best_t != INFINITY) {
+					printf("#");
+				} else {
+					printf(".");
+				}
+
+				//double initColor[3] = {0,0,0};
 			
-			//Setting the color of the pixel to the color vector. Flips the y-axis
-			pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3] = color[0]*255;
-			pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3+1] = color[1]*255;
-			pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3+2] = color[2]*255;
+				//Setting the color of the pixel to the color vector. Flips the y-axis
+				pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3] = clamp(color[0])*255;
+				pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3+1] = clamp(color[1])*255;
+				pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3+2] = clamp(color[2])*255;
 
 		}
 		printf("\n");
