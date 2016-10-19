@@ -57,18 +57,7 @@ double clamp(double color){
 }
 
 double distance(double* v1, double* v2){
-	double distance = 0;
-	int i;
-	for(i=0; i<3; i++){
-		/*if(v1[i] == NULL || v2[i] == NULL){
-			fprintf(stderr, "Error calculating distance between vectors.");
-			exit(1);
-		}*/
-
-		distance += sqr(v2[i]-v1[i]);
-	}
-	
-	return sqrt(distance);
+	return sqrt(sqr(v2[0]-v1[0]) + sqr(v2[1]-v1[1]) + sqr(v2[2]-v1[2]));
 }
 
 double dot (double* v1, double* v2){
@@ -79,9 +68,9 @@ double* reflect (double* v, double* n){
 	double nDotV = dot(n,v);
 	double* result = malloc(sizeof(double)*3);
 
-	result[0] = (2*nDotV*n[0]) + v[0];
-	result[1] = (2*nDotV*n[1]) + v[1];
-	result[2] = (2*nDotV*n[2]) + v[2];
+	result[0] = (2*nDotV*n[0]) - v[0];
+	result[1] = (2*nDotV*n[1]) - v[1];
+	result[2] = (2*nDotV*n[2]) - v[2];
 
 	return result;
 }
@@ -92,12 +81,12 @@ double* diffuse(double* diffColor, double* lightColor, double* N, double* L){
 	if(cosA > 0){
 		result[0] = diffColor[0] * lightColor[0] * cosA;
 		result[1] = diffColor[1] * lightColor[1] * cosA;
-		result[3] = diffColor[2] * lightColor[2] * cosA;
+		result[2] = diffColor[2] * lightColor[2] * cosA;
 	}
 	else{
 		result[0] = 0;
 		result[1] = 0;
-		result[3] = 0;
+		result[2] = 0;
 	}
 
 	return result;
@@ -113,12 +102,12 @@ double* specular(double* specColor, double* lightColor, double* L, double* N, do
 	if(cosA > 0 && cosB > 0){
 		result[0] = specColor[0] * lightColor[0] * pow(cosB,20);
 		result[1] = specColor[1] * lightColor[1] * pow(cosB,20);
-		result[3] = specColor[2] * lightColor[2] * pow(cosB,20);
+		result[2] = specColor[2] * lightColor[2] * pow(cosB,20);
 	}
 	else{
 		result[0] = 0;
 		result[1] = 0;
-		result[3] = 0;
+		result[2] = 0;
 	}
 
 	return result;
@@ -130,7 +119,7 @@ double radial(Object* light, double distanceToLight){
 		exit(1);
 	}
 
-	return 1/(light->light.radial[2]*pow(distanceToLight,2) + light->light.radial[1]*distanceToLight + light->light.radial[0]);
+	return 1/(light->light.radial[2]*sqr(distanceToLight) + light->light.radial[1]*distanceToLight + light->light.radial[0]);
 
 }
 
@@ -431,8 +420,8 @@ int main(int argc, char** argv) {
 			int j;
 			for(j=0; lights[j] != NULL; j++){
 
-				double Ron[3];
-				double Rdn[3];
+				double* Ron = malloc(sizeof(double)*3);
+				double* Rdn = malloc(sizeof(double)*3);
 				int isInShadow = 0;
 
 				int n;
@@ -441,7 +430,7 @@ int main(int argc, char** argv) {
 					Rdn[n] = lights[j]->light.position[n] - Ron[n];
 				}
 
-				normalize(Ron);
+				//normalize(Ron);  <-- here was the cause of a lot of pain. Pro Tip: Don't normalize points.
 				normalize(Rdn);
 
 				double distanceToLight = distance(Ron, lights[j]->light.position);
@@ -453,7 +442,7 @@ int main(int argc, char** argv) {
 					if(objects[k] == objects[best_i]) continue;
 					
 					double lightT = -1;
-					int kind = objects[k]->kind;
+					//int kind = objects[k]->kind;
 					switch(objects[k]->kind) {
 						case 0:
 						break;
@@ -484,7 +473,6 @@ int main(int argc, char** argv) {
 				}
 
 				if(isInShadow == 0 && best_i >= 0){
-					//TODO: Lighting calculation
 					double* N = malloc(sizeof(double)*3);
 					double* objectDiffuse;
 					double* objectSpecular;
@@ -508,10 +496,12 @@ int main(int argc, char** argv) {
 					}
 
 					double* L = Rdn;
-					double* R = reflect(L,N); //Check reflect function
 					double* V = Rd;
 					invert(V);
+					normalize(V);
+					normalize(L);
 					normalize(N);
+					double* R = reflect(L,N);
 					normalize(R);
 
 					double fang = angular(lights[j], Rdn);//
@@ -528,21 +518,21 @@ int main(int argc, char** argv) {
 			}//End of light loop
 
 				//Can print the scene pixel by pixel to the terminal.
-				if (best_t > 0 && best_t != INFINITY) {
+				/*if (best_t > 0 && best_t != INFINITY) {
 					printf("#");
 				} else {
 					printf(".");
-				}
+				}*/
 
 				//double initColor[3] = {0,0,0};
 			
 				//Setting the color of the pixel to the color vector. Flips the y-axis
-				pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3] = clamp(color[0])*255;
-				pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3+1] = clamp(color[1])*255;
-				pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3+2] = clamp(color[2])*255;
+				pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3] = (unsigned char) (clamp(color[0])*255);
+				pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3+1] = (unsigned char) (clamp(color[1])*255);
+				pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3+2] = (unsigned char) (clamp(color[2])*255);
 
 		}
-		printf("\n");
+		//printf("\n");
 	}
 
 	FILE* output = fopen(argv[4], "w");
