@@ -298,20 +298,19 @@ Object* read_light(FILE* filename) {
 	int c;
 	int colorCheck = 0;
 	int positionCheck = 0;
-	//int directionCheck = 0;
+	int directionCheck = 0;
+	int thetaCheck = 0;
+	int angularCheck = 0;
 
-	//initializing radial and angular to 0
+	//initializing radial
 	object->light.radial[0] = 1;
 	object->light.radial[1] = 0;
 	object->light.radial[2] = 0;
-	object->light.angular[0] = 1;
-	object->light.angular[1] = 0;
-	object->light.angular[2] = 0;
 
 	//initialize light direction TODO:remove? mistake in example .json?
-	object->light.direction[0] = 0;
+	/*object->light.direction[0] = 0;
 	object->light.direction[1] = 0;
-	object->light.direction[2] = 0;
+	object->light.direction[2] = 0;*/
 
 	while (1) {
 		c = next_c(filename);
@@ -342,7 +341,7 @@ Object* read_light(FILE* filename) {
 				object->light.direction[0] = vector[0];
 				object->light.direction[1] = vector[1];
 				object->light.direction[2] = vector[2];
-				//directionCheck = 1;
+				directionCheck = 1;
 			} else if (strcmp(key, "radial-a2") == 0){
 				double temp = next_number(filename);
 				object->light.radial[2] = temp;
@@ -352,15 +351,16 @@ Object* read_light(FILE* filename) {
 			} else if (strcmp(key, "radial-a0") == 0){
 				double temp = next_number(filename);
 				object->light.radial[0] = temp;
-			} else if (strcmp(key, "angular-a2") == 0){
-				double temp = next_number(filename);
-				object->light.angular[2] = temp;
-			} else if (strcmp(key, "angular-a1") == 0){
-				double temp = next_number(filename);
-				object->light.angular[1] = temp;
 			} else if (strcmp(key, "angular-a0") == 0){
 				double temp = next_number(filename);
-				object->light.angular[0] = temp;
+				object->light.angularA0 = temp;
+				angularCheck = 1;
+			} else if (strcmp(key, "theta") == 0){
+				double temp = next_number(filename);
+				object->light.theta = temp;
+				if(temp > 0){
+					thetaCheck = 1;
+				}
 			} else {
 				fprintf(stderr, "Error: Unknown property, \"%s\", on line %d.\n",
 				key, line);
@@ -375,7 +375,18 @@ Object* read_light(FILE* filename) {
 	}
 
 	if(colorCheck != 1 || positionCheck != 1){
-		fprintf(stderr, "Error: light is missing parameters");
+		fprintf(stderr, "Error: Light is missing parameters");
+		exit(1);
+	}
+
+	if(thetaCheck == 0 && directionCheck == 0 && angularCheck == 0){
+		object->light.isSpot = 0;
+	}
+	else if(thetaCheck == 1 && directionCheck == 1 && angularCheck == 1){
+		object->light.isSpot = 1;
+	}
+	else{
+		fprintf(stderr,"Error: Light is a spotlight but does not have all required spotlight parameters");
 		exit(1);
 	}
 

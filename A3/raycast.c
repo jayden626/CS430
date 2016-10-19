@@ -40,6 +40,12 @@ static inline void normalize(double* v) {
 	v[2] /= len;
 }
 
+static inline void invert(double* v) {
+	v[0] *= -1;
+	v[1] *= -1;
+	v[2] *= -1;
+}
+
 double clamp(double color){
 	if(color < 0){
 		return 0;
@@ -59,30 +65,94 @@ double distance(double* v1, double* v2){
 			exit(1);
 		}*/
 
-		distance += sqr(v1[i]-v2[i]);
+		distance += sqr(v2[i]-v1[i]);
 	}
 	
 	return sqrt(distance);
-}
-
-double* reflect (double* v, double* n){
-	double nDotV = (v[0]*n[0])+(v[1]*n[1])+(v[2]*n[2]);
-	double* result = malloc(sizeof(double)*3);
-
-	result[0] = v[0] - (2*nDotV*n[0]);
-	result[1] = v[1] - (2*nDotV*n[0]);
-	result[2] = v[2] - (2*nDotV*n[0]);
-
-	return result;
 }
 
 double dot (double* v1, double* v2){
 	return (v1[0]*v2[0])+(v1[1]*v2[1])+(v1[2]*v2[2]);
 }
 
-double* diffuse(double* Ron, double* Rdn, double* N, double* diffuse, double* specular){
-	double* diff = malloc(sizeof(double)*3);
-	
+double* reflect (double* v, double* n){
+	double nDotV = dot(n,v);
+	double* result = malloc(sizeof(double)*3);
+
+	result[0] = (2*nDotV*n[0]) + v[0];
+	result[1] = (2*nDotV*n[1]) + v[1];
+	result[2] = (2*nDotV*n[2]) + v[2];
+
+	return result;
+}
+
+double* diffuse(double* diffColor, double* lightColor, double* N, double* L){
+	double* result = malloc(sizeof(double)*3);
+	double cosA = dot(N, L);
+	if(cosA > 0){
+		result[0] = diffColor[0] * lightColor[0] * cosA;
+		result[1] = diffColor[1] * lightColor[1] * cosA;
+		result[3] = diffColor[2] * lightColor[2] * cosA;
+	}
+	else{
+		result[0] = 0;
+		result[1] = 0;
+		result[3] = 0;
+	}
+
+	return result;
+}
+
+double* specular(double* specColor, double* lightColor, double* L, double* N, double* R, double* V){
+
+	double* result = malloc(sizeof(double)*3);
+
+	double cosA = dot(N, L);
+	double cosB = dot(R, V);
+
+	if(cosA > 0 && cosB > 0){
+		result[0] = specColor[0] * lightColor[0] * pow(cosB,20);
+		result[1] = specColor[1] * lightColor[1] * pow(cosB,20);
+		result[3] = specColor[2] * lightColor[2] * pow(cosB,20);
+	}
+	else{
+		result[0] = 0;
+		result[1] = 0;
+		result[3] = 0;
+	}
+
+	return result;
+}
+
+double radial(Object* light, double distanceToLight){
+	if(light->kind != 3){
+		fprintf(stderr, "Error: Cannot calculate radual attenuation, object kind = %d and is not a light", light->kind);
+		exit(1);
+	}
+
+	return 1/(light->light.radial[2]*pow(distanceToLight,2) + light->light.radial[1]*distanceToLight + light->light.radial[0]);
+
+}
+
+
+double angular(Object* light, double* Rd){
+	if(light->kind != 3){
+		fprintf(stderr, "Error: Cannot calculate radual attenuation, object kind = %d and is not a light", light->kind);
+		exit(1);
+	}
+
+	if(light->light.isSpot == 0){
+		return 1;
+	}
+
+	double cosA = dot(Rd, light->light.direction);
+	double cosT = cos(light->light.theta*(M_PI/180));
+
+	if(cosA > cosT){
+		return 0;
+	}
+
+	return pow(cosA, light->light.angularA0);
 }
 
 //static inline double* reflect(double* v){
@@ -371,6 +441,9 @@ int main(int argc, char** argv) {
 					Rdn[n] = lights[j]->light.position[n] - Ron[n];
 				}
 
+				normalize(Ron);
+				normalize(Rdn);
+
 				double distanceToLight = distance(Ron, lights[j]->light.position);
 
 				//Looping over all objects
@@ -404,7 +477,7 @@ int main(int argc, char** argv) {
 							exit(1);
 					}
 
-					if(lightT > -1 && lightT < distanceToLight){
+					if(lightT > 0 && lightT < distanceToLight){
 						isInShadow = 1;
 						break;
 					}
@@ -413,20 +486,20 @@ int main(int argc, char** argv) {
 				if(isInShadow == 0 && best_i >= 0){
 					//TODO: Lighting calculation
 					double* N = malloc(sizeof(double)*3);
-					double* diffuse;
-					double* specular;
+					double* objectDiffuse;
+					double* objectSpecular;
 					if(objects[best_i]->kind == 1){
 						N[0] = Ron[0] - objects[best_i]->sphere.center[0];
 						N[1] = Ron[1] - objects[best_i]->sphere.center[1];
 						N[2] = Ron[2] - objects[best_i]->sphere.center[2];
-						diffuse = objects[best_i]->sphere.diffuseColor;
-						specular = objects[best_i]->sphere.specularColor;
+						objectDiffuse = objects[best_i]->sphere.diffuseColor;
+						objectSpecular = objects[best_i]->sphere.specularColor;
 						
 					}
 					else if(objects[best_i]->kind == 2){
 						N = objects[best_i]->plane.normal;
-						diffuse = objects[best_i]->plane.diffuseColor;
-						specular = objects[best_i]->plane.specularColor;
+						objectDiffuse = objects[best_i]->plane.diffuseColor;
+						objectSpecular = objects[best_i]->plane.specularColor;
 						
 					}
 					else{
@@ -435,16 +508,22 @@ int main(int argc, char** argv) {
 					}
 
 					double* L = Rdn;
-					double* R = reflect(L,N);
+					double* R = reflect(L,N); //Check reflect function
 					double* V = Rd;
+					invert(V);
+					normalize(N);
+					normalize(R);
 
-					double fang = 1; //TODO: SPOTLIGHT
-					double frad = 1/(lights[j]->light.angular[2]*pow(distanceToLight,2) + lights[j]->light.angular[1]*distanceToLight + lights[j]->light.angular[0]);
+					double fang = angular(lights[j], Rdn);//
+					double frad = radial(lights[j], distanceToLight);
+
+					double* diff = diffuse(objectDiffuse, lights[j]->light.color, N, L);
+					double* spec = specular(objectSpecular, lights[j]->light.color, L, N, R, V);
 					//double spec;
-					//double* diff = diffuse(Ron, Rdn, N, diffuse, specular);
-					color[0] += fang*frad*(diffuse[0] + specular[0]);
-					color[1] += fang*frad*(diffuse[1] + specular[1]);
-					color[2] += fang*frad*(diffuse[2] + specular[2]);
+					//double* diff = diffuse(Rdn, N, diffuse);
+					color[0] += fang*frad*(diff[0] + spec[0]);
+					color[1] += fang*frad*(diff[1] + spec[1]);
+					color[2] += fang*frad*(diff[2] + spec[2]);
 				}
 			}//End of light loop
 
