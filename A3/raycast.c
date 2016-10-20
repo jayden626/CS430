@@ -13,7 +13,7 @@
  
 #include "raycast.h"
 
-/* Method to return the square of the passed double. Used to make code easier to read
+/* Returns the square of the passed double. Used to make code easier to read
  *
  * Parameters:		v: double value to be squared
  *
@@ -25,7 +25,7 @@ static inline double sqr(double v) {
 	return v*v;
 }
 
-/* Method to normalize the given double triplet (Vector 3)
+/* Normalizes the given double triplet (Vector 3)
  *
  * Parameters: 		v: Vector to be normalized
  *
@@ -40,30 +40,71 @@ static inline void normalize(double* v) {
 	v[2] /= len;
 }
 
+/* Inverts the direction of the given double triplet (Vector 3)
+ *
+ * Parameters: 		v: Vector to be inverted
+ *
+ * Preconditions: 	v must be an array of at least 3 doubles. Will only consider the first 3 values if the array is larger.
+ *
+ * Postconditions:	Vector v will be inverted
+ */
 static inline void invert(double* v) {
 	v[0] *= -1;
 	v[1] *= -1;
 	v[2] *= -1;
 }
 
-double clamp(double color){
-	if(color < 0){
+/* Clamps the given double to values ranging from 0.0 to 1.0
+ *
+ * Parameters: 		d: double to be clamped
+ *
+ * Preconditions: 	None
+ *
+ * Postconditions:	If d < 0, will return 0. If d > 1, will return 1, else will return d
+ */
+double clamp(double d){
+	if(d < 0){
 		return 0;
 	}
-	else if(color > 1){
+	else if(d > 1){
 		return 1;
 	}
-	return color;
+	return d;
 }
 
+/* Returns the distance between the two given double triplets (Vector 3)
+ *
+ * Parameters: 		v1, v2: Vectors to compute the distance between
+ *
+ * Preconditions: 	v1, v2 must be an array of at least 3 doubles. Will only consider the first 3 values if the array is larger.
+ *
+ * Postconditions:	Returns the distance between the two vectors
+ */
 double distance(double* v1, double* v2){
 	return sqrt(sqr(v2[0]-v1[0]) + sqr(v2[1]-v1[1]) + sqr(v2[2]-v1[2]));
 }
 
+/* Returns the dot product of the two given double triplets (Vector 3)
+ *
+ * Parameters: 		v1, v2: Vectors to compute the dot product of
+ *
+ * Preconditions: 	v1, v2 must be an array of at least 3 doubles. Will only consider the first 3 values if the array is larger.
+ *
+ * Postconditions:	Returns the dot product of the two vectors
+ */
 double dot (double* v1, double* v2){
 	return (v1[0]*v2[0])+(v1[1]*v2[1])+(v1[2]*v2[2]);
 }
 
+/* Returns the reflection of the given vector on the given normal vector
+ *
+ * Parameters: 		v: Vector to be reflected
+ *					n: Normal vector to reflect about
+ *
+ * Preconditions: 	v1, v2 must be an array of at least 3 doubles. Will only consider the first 3 values if the array is larger.
+ *
+ * Postconditions:	Returns the reflection of the given vector about the normal
+ */
 double* reflect (double* v, double* n){
 	double nDotV = dot(n,v);
 	double* result = malloc(sizeof(double)*3);
@@ -75,6 +116,17 @@ double* reflect (double* v, double* n){
 	return result;
 }
 
+/* Calculates the diffuse color vector
+ *
+ * Parameters: 		diffColor: A vector containing 3 values for R,G,B colors
+ *					lightColor: A vector containing 3 values for R,G,B colors
+ *					N: A vector normal of the surface being reflected
+ *					L: A vector of the light direction from the point being calculated
+ *
+ * Preconditions: 	diffColor, lightColor, N, L must be an array of at least 3 doubles. Will only consider the first 3 values if the array is larger.
+ *
+ * Postconditions:	Returns a vector containing the new computed diffuse color values
+ */
 double* diffuse(double* diffColor, double* lightColor, double* N, double* L){
 	double* result = malloc(sizeof(double)*3);
 	double cosA = dot(N, L);
@@ -92,6 +144,20 @@ double* diffuse(double* diffColor, double* lightColor, double* N, double* L){
 	return result;
 }
 
+
+/* Calculates the specular color vector
+ *
+ * Parameters: 		specColor: A vector containing 3 values for R,G,B colors
+ *					lightColor: A vector containing 3 values for R,G,B colors
+ *					N: A vector normal of the surface being reflected
+ *					L: A vector of the light direction from the point being calculated
+ *					R: The reflected vector from the light
+ *					V: The direction vector towards the camera
+ *
+ * Preconditions: 	specColor, lightColor, N, L, R, V must be an array of at least 3 doubles. Will only consider the first 3 values if the array is larger.
+ *
+ * Postconditions:	Returns a vector containing the new computed specular color values
+ */
 double* specular(double* specColor, double* lightColor, double* L, double* N, double* R, double* V){
 
 	double* result = malloc(sizeof(double)*3);
@@ -113,6 +179,15 @@ double* specular(double* specColor, double* lightColor, double* L, double* N, do
 	return result;
 }
 
+/* Calculates the radial attenuation
+ *
+ * Parameters: 		light: A reference to the light object
+ *					distanceToLight: the distance from the light to the object ray intersection
+ *
+ * Preconditions: 	light must be a pointer to an Object which is a light (kind == 3)
+ *
+ * Postconditions:	Returns the radial attenuation value
+ */
 double radial(Object* light, double distanceToLight){
 	if(light->kind != 3){
 		fprintf(stderr, "Error: Cannot calculate radual attenuation, object kind = %d and is not a light", light->kind);
@@ -123,10 +198,19 @@ double radial(Object* light, double distanceToLight){
 
 }
 
-
+/* Calculates the angular attenuation
+ *
+ * Parameters: 		light: A reference to the light object
+ *					Rd: A vector of the direction from the light to the object ray intersection
+ *
+ * Preconditions: 	light must be a pointer to an Object which is a light (kind == 3)
+ *					Rd must be an array of at least 3 doubles. Will only consider the first 3 values if the array is larger.
+ *
+ * Postconditions:	Returns the anfular attenuation value
+ */
 double angular(Object* light, double* Rd){
 	if(light->kind != 3){
-		fprintf(stderr, "Error: Cannot calculate radual attenuation, object kind = %d and is not a light", light->kind);
+		fprintf(stderr, "Error: Cannot calculate angular attenuation, object kind = %d and is not a light", light->kind);
 		exit(1);
 	}
 
@@ -134,7 +218,7 @@ double angular(Object* light, double* Rd){
 		return 1;
 	}
 
-	double cosA = dot(Rd, light->light.direction);
+	double cosA = dot(light->light.direction, Rd);
 	double cosT = cos(light->light.theta*(M_PI/180));
 
 	if(cosA > cosT){
@@ -144,8 +228,6 @@ double angular(Object* light, double* Rd){
 	return pow(cosA, light->light.angularA0);
 }
 
-//static inline double* reflect(double* v){
-	
 
 /* Method to return the t value of a ray-cylinder intersection
  * Parameters: 		Ro: Ray origin
@@ -373,7 +455,6 @@ int main(int argc, char** argv) {
 			int i;
 			for (i=0; objects[i] != NULL; i += 1) {
 				double t = 0;
-				int kind = objects[i]->kind;
 				switch(objects[i]->kind) {
 					case 0:
 					break;
@@ -397,22 +478,9 @@ int main(int argc, char** argv) {
 						exit(1);
 				}
 				//Checking if the t value is the smallest (i.e. closest object) and that it is in front of the camera
-				//Then sets the color vector to that objects color.
 				if (t > 0 && t < best_t){
 					best_t = t;
 					best_i = i;
-					
-					/*if(kind == 1){
-						color[0] = objects[i]->sphere.diffuseColor[0];
-						color[1] = objects[i]->sphere.diffuseColor[1];
-						color[2] = objects[i]->sphere.diffuseColor[2];
-						//printf("color: %lf %lf %lf \n",color[0], color[1], color[2]);
-					}
-					else if(kind == 2){
-						color[0] = objects[i]->plane.color[0];
-						color[1] = objects[i]->plane.color[1];
-						color[2] = objects[i]->plane.color[2];
-					}*/
 				}
 			}
 
@@ -420,8 +488,8 @@ int main(int argc, char** argv) {
 			int j;
 			for(j=0; lights[j] != NULL; j++){
 
-				double* Ron = malloc(sizeof(double)*3);
-				double* Rdn = malloc(sizeof(double)*3);
+				double* Ron = malloc(sizeof(double)*3); //New ray origin
+				double* Rdn = malloc(sizeof(double)*3); //New ray direction
 				int isInShadow = 0;
 
 				int n;
@@ -442,7 +510,6 @@ int main(int argc, char** argv) {
 					if(objects[k] == objects[best_i]) continue;
 					
 					double lightT = -1;
-					//int kind = objects[k]->kind;
 					switch(objects[k]->kind) {
 						case 0:
 						break;
@@ -465,17 +532,19 @@ int main(int argc, char** argv) {
 							fprintf(stderr,"Error: Cannot process object of kind %d\n",objects[i]->kind);
 							exit(1);
 					}
-
+					//check if object is in shadow
 					if(lightT > 0 && lightT < distanceToLight){
 						isInShadow = 1;
 						break;
 					}
-				}
+				} //end of object loop
 
 				if(isInShadow == 0 && best_i >= 0){
-					double* N = malloc(sizeof(double)*3);
-					double* objectDiffuse;
-					double* objectSpecular;
+					double* N = malloc(sizeof(double)*3); //Normal to the intersection point
+					double* objectDiffuse; //Diffuse color of the object
+					double* objectSpecular; //Specular color of the object
+
+					//Getting normal and color vectors
 					if(objects[best_i]->kind == 1){
 						N[0] = Ron[0] - objects[best_i]->sphere.center[0];
 						N[1] = Ron[1] - objects[best_i]->sphere.center[1];
@@ -495,36 +564,30 @@ int main(int argc, char** argv) {
 						exit(1);
 					}
 
-					double* L = Rdn;
-					double* V = Rd;
+					double* V = Rd; //direction from intersection back to the camera (once inverted)
 					invert(V);
 					normalize(V);
-					normalize(L);
 					normalize(N);
-					double* R = reflect(L,N);
+					double* R = reflect(Rdn,N); //Reflected vector of the new ray direction about the light
 					normalize(R);
 
-					double fang = angular(lights[j], Rdn);//
-					double frad = radial(lights[j], distanceToLight);
-
-					double* diff = diffuse(objectDiffuse, lights[j]->light.color, N, L);
-					double* spec = specular(objectSpecular, lights[j]->light.color, L, N, R, V);
-					//double spec;
-					//double* diff = diffuse(Rdn, N, diffuse);
+					double fang = angular(lights[j], Rdn); //angular attenuation
+					double frad = radial(lights[j], distanceToLight); //radial attenuation
+					double* diff = diffuse(objectDiffuse, lights[j]->light.color, N, Rdn); //diffuse color
+					double* spec = specular(objectSpecular, lights[j]->light.color, Rdn, N, R, V); //specular color
 					color[0] += fang*frad*(diff[0] + spec[0]);
 					color[1] += fang*frad*(diff[1] + spec[1]);
 					color[2] += fang*frad*(diff[2] + spec[2]);
 				}
 			}//End of light loop
 
-				//Can print the scene pixel by pixel to the terminal.
+				//Can print the scene pixel by pixel to the terminal. Uncomment the printf at the end of this loop
 				/*if (best_t > 0 && best_t != INFINITY) {
 					printf("#");
 				} else {
 					printf(".");
 				}*/
 
-				//double initColor[3] = {0,0,0};
 			
 				//Setting the color of the pixel to the color vector. Flips the y-axis
 				pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3] = (unsigned char) (clamp(color[0])*255);
