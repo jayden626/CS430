@@ -441,7 +441,10 @@ int main(int argc, char** argv) {
 	for (y = 0; y < imgHeight; y++) {
 		int x;
 		for (x = 0; x < imgWidth; x++) {
-			double color[3] = {0,0,0}; //Initialized to black. Is set when an intersection is found
+			double* color = malloc(sizeof(unsigned char)*3); //Initialized to black. Is set when an intersection is found
+			color[0] = 0;
+			color[1] = 0;
+			color[2] = 0;
 			double Ro[3] = {0, 0, 0}; //Origin of the ray from the camera. Set to {0,0,0} for this assignment
 
 			// Rd = normalize(P - Ro)
@@ -578,7 +581,16 @@ int main(int argc, char** argv) {
 					color[0] += fang*frad*(diff[0] + spec[0]);
 					color[1] += fang*frad*(diff[1] + spec[1]);
 					color[2] += fang*frad*(diff[2] + spec[2]);
+
+					free(N);
+					free(R);
+					free(diff);
+					free(spec);
 				}
+
+				free(Rdn);
+				free(Ron);
+				
 			}//End of light loop
 
 				//Can print the scene pixel by pixel to the terminal. Uncomment the printf at the end of this loop
@@ -594,6 +606,7 @@ int main(int argc, char** argv) {
 				pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3+1] = (unsigned char) (clamp(color[1])*255);
 				pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3+2] = (unsigned char) (clamp(color[2])*255);
 
+				free(color);
 		}
 		//printf("\n");
 	}
@@ -606,5 +619,21 @@ int main(int argc, char** argv) {
 	//Writes the pixel map to the output file.
 	writeP6(output, pixmap, imgWidth, imgHeight, 255);
 
+	int freeObjects = 0;
+	while(objects[freeObjects] != NULL){
+		free(objects[freeObjects]);
+		freeObjects++;
+	}
+	free(objects);
+	
+	int freeLights= 0;
+	while(lights[freeLights] != NULL){
+		free(lights[freeLights]);
+		freeLights++;
+	}
+	free(lights);
+
+	free(pixmap);
+	
 	return 0;
 }
