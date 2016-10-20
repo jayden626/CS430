@@ -37,16 +37,6 @@
 		"radial-a2": 0.125,
 		"radial-a1": 0.125,
 		"radial-a0": 0.125,
-		"position": [1,2,0]
-	},
-
-	{
-		"type": "light",
-		"color": [3,3,3],
-		"theta": 0,
-		"radial-a2": 0.125,
-		"radial-a1": 0.125,
-		"radial-a0": 0.125,
 		"position": [0,0,0]
 	}
 ]
