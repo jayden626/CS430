@@ -3,8 +3,8 @@
  * Date: 09/16/2016
  * Student No: 5388406 / jsu22
  */
-#ifndef URCH_PPMRW
-#define URCH_PPMRW
+#ifndef URCH_A3_PPMRW
+#define URCH_A3_PPMRW
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -8,7 +8,7 @@
  * and write the image to a P6 PPM file.
  *
  * Correct format is raycast width height input output
- * Ex: raycast 100 200 input.json output.ppm
+ * Ex: raycast 1000 1000 input.json output.ppm
  */
  
 #include "raycast.h"
@@ -377,7 +377,7 @@ int main(int argc, char** argv) {
 
 	Object** objects; //Array of objects in the scene
 	objects = malloc(sizeof(Object*)*2*128);
-	Object** lights;
+	Object** lights; //Array of the lights in the scene
 	lights = malloc(sizeof(Object*)*2*128);
 	//Object* cam = NULL;// malloc(sizeof(Object));
 	RGBpixel* pixmap; //The pixel map used for storing pixel values
