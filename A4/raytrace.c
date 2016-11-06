@@ -33,7 +33,7 @@ static inline double sqr(double v) {
  *
  * Postconditions:	Vector v will be normalized
  */
-static inline void normalize(double* v) {
+static inline void normalize(double* v){
 	double len = sqrt(sqr(v[0]) + sqr(v[1]) + sqr(v[2]));
 	v[0] /= len;
 	v[1] /= len;
@@ -48,10 +48,16 @@ static inline void normalize(double* v) {
  *
  * Postconditions:	Vector v will be inverted
  */
-static inline void invert(double* v) {
+static inline void invert(double* v){
 	v[0] *= -1;
 	v[1] *= -1;
 	v[2] *= -1;
+}
+
+static inline void vector3Addition(double* v1, double* v2){
+	v1[0] += v2[0];
+	v1[1] += v2[1];
+	v1[2] += v2[2];
 }
 
 /* Clamps the given double to values ranging from 0.0 to 1.0
@@ -711,23 +717,14 @@ int main(int argc, char** argv) {
 				
 				}//End of light loop
 			}
-
-				//Can print the scene pixel by pixel to the terminal. Uncomment the printf at the end of this loop
-				/*if (best_t > 0 && best_t != INFINITY) {
-					printf("#");
-				} else {
-					printf(".");
-				}*/
-
+		
+			//Setting the color of the pixel to the color vector. Flips the y-axis
+			pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3] = (unsigned char) (clamp(color[0])*255);
+			pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3+1] = (unsigned char) (clamp(color[1])*255);
+			pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3+2] = (unsigned char) (clamp(color[2])*255);
 			
-				//Setting the color of the pixel to the color vector. Flips the y-axis
-				pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3] = (unsigned char) (clamp(color[0])*255);
-				pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3+1] = (unsigned char) (clamp(color[1])*255);
-				pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3+2] = (unsigned char) (clamp(color[2])*255);
-				
-				free(color);
+			free(color);
 		}
-		//printf("\n");
 	}
 
 	FILE* output = fopen(argv[4], "w");

@@ -8,6 +8,7 @@
 static inline double sqr(double v);
 static inline void normalize(double* v);
 static inline void invert(double* v);
+static inline void vector3Addition(double* v1, double* v2);
 double clamp(double d);
 double distance(double* v1, double* v2);
 double dot (double* v1, double* v2);
