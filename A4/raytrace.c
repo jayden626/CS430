@@ -480,6 +480,92 @@ int checkShadow(double* Ro, double* Rd, Object** objects, double distanceToLight
 	return 0;
 }
 
+double* recursiveRaytrace(double* Ro, double* Rd, Object** objects, Object** lights, int recurseNo){
+
+	double best_t = INFINITY; //Used to find the closest intersection
+	int best_i = -1;
+
+	shoot(Ro, Rd, objects, &best_t, &best_i);
+
+	double* color = malloc(sizeof(unsigned char)*3); //Initialized to black. Is set when an intersection is found
+	color[0] = 0;
+	color[1] = 0;
+	color[2] = 0;
+
+	if(best_i > -1 && best_t > 0 && best_t < INFINITY){
+		//Loop over all lights looking for objects in the way
+		int j;
+		for(j=0; lights[j] != NULL; j++){
+
+			double* Ron = malloc(sizeof(double)*3); //New ray origin
+			double* Rdn = malloc(sizeof(double)*3); //New ray direction
+
+			int n;
+			for(n=0; n<3; n++){
+				Ron[n] = best_t*Rd[n] + Ro[n];
+				Rdn[n] = lights[j]->light.position[n] - Ron[n];
+			}
+
+			//normalize(Ron);  <-- here was the cause of a lot of pain. Pro Tip: Don't normalize points.
+			normalize(Rdn);
+			double distanceToLight = distance(Ron, lights[j]->light.position);
+			int isInShadow = checkShadow(Ron, Rdn, objects, distanceToLight, best_i);
+			
+			if(isInShadow == 0 && best_i >= 0){
+				double* N = malloc(sizeof(double)*3); //Normal to the intersection point
+				double* objectDiffuse; //Diffuse color of the object
+				double* objectSpecular; //Specular color of the object
+
+				//Getting normal and color vectors
+				if(objects[best_i]->kind == 1){
+					N[0] = Ron[0] - objects[best_i]->sphere.center[0];
+					N[1] = Ron[1] - objects[best_i]->sphere.center[1];
+					N[2] = Ron[2] - objects[best_i]->sphere.center[2];
+					objectDiffuse = objects[best_i]->sphere.diffuseColor;
+					objectSpecular = objects[best_i]->sphere.specularColor;
+				
+				}
+				else if(objects[best_i]->kind == 2){
+					N = objects[best_i]->plane.normal;
+					objectDiffuse = objects[best_i]->plane.diffuseColor;
+					objectSpecular = objects[best_i]->plane.specularColor;
+				
+				}
+				else{
+					fprintf(stderr, "Error: Cannot calculate lighting.");
+					exit(1);
+				}
+
+				double* V = Rd; //direction from intersection back to the camera (once inverted)
+				invert(V);
+				normalize(V);
+				normalize(N);
+				double* R = reflect(Rdn,N); //Reflected vector of the new ray direction about the light
+				normalize(R);
+
+				double fang = angular(lights[j], Rdn); //angular attenuation
+				double frad = radial(lights[j], distanceToLight); //radial attenuation
+				double* diff = diffuse(objectDiffuse, lights[j]->light.color, N, Rdn); //diffuse color
+				double* spec = specular(objectSpecular, lights[j]->light.color, Rdn, N, R, V); //specular color
+			
+				color[0] = color[0] + (fang*frad*(diff[0] + spec[0]));
+				color[1] = color[1] + (fang*frad*(diff[1] + spec[1]));
+				color[2] = color[2] + (fang*frad*(diff[2] + spec[2]));
+
+				free(N);
+				free(R);
+				free(diff);
+				free(spec);
+			}
+
+			free(Rdn);
+			free(Ron);
+		
+		}//End of light loop
+	}
+	return color;
+}
+
 /* Main method. Will read in the arguements, use the parser to get a list of objects,
  * then perform ray tracing techniques to build an image and write it to a P6 PPM file.
  * Parameters: 		argc: Number of arguements
@@ -565,158 +651,7 @@ int main(int argc, char** argv) {
 			double Rd[3] = {cx - (camWidth/2) + pixwidth * (x + 0.5), cy - (camHeight/2) + pixheight * (y + 0.5), 1};
 			normalize(Rd);
 
-			double best_t = INFINITY; //Used to find the closest intersection
-			int best_i = -1;
-
-			shoot(Ro, Rd, objects, &best_t, &best_i);
-
-			//Looping over all objects, checking for intersections with the current ray direction from the origin
-			/*int i;
-			for (i=0; objects[i] != NULL; i += 1) {
-				double t = 0;
-				switch(objects[i]->kind) {
-					case 0:
-					break;
-
-					case 1:
-						t = sphereIntersection(Ro, Rd,
-						objects[i]->sphere.center,
-						objects[i]->sphere.radius);
-					break;
-
-					case 2:
-						t = planeIntersection(Ro, Rd,
-						objects[i]->plane.position,
-						objects[i]->plane.normal);
-					break;
-
-					case 3:
-					break;
-					default:
-						fprintf(stderr,"Error: Cannot process object of kind %d\n",objects[i]->kind);
-						exit(1);
-				}
-				//Checking if the t value is the smallest (i.e. closest object) and that it is in front of the camera
-				if (t > 0 && t < best_t){
-					best_t = t;
-					best_i = i;
-				}
-			}*/
-
-			double* color = malloc(sizeof(unsigned char)*3); //Initialized to black. Is set when an intersection is found
-			color[0] = 0;
-			color[1] = 0;
-			color[2] = 0;
-
-			if(best_i > -1 && best_t > 0 && best_t < INFINITY){
-				//Loop over all lights looking for objects in the way
-				int j;
-				for(j=0; lights[j] != NULL; j++){
-
-					double* Ron = malloc(sizeof(double)*3); //New ray origin
-					double* Rdn = malloc(sizeof(double)*3); //New ray direction
-
-					int n;
-					for(n=0; n<3; n++){
-						Ron[n] = best_t*Rd[n] + Ro[n];
-						Rdn[n] = lights[j]->light.position[n] - Ron[n];
-					}
-
-					//normalize(Ron);  <-- here was the cause of a lot of pain. Pro Tip: Don't normalize points.
-					normalize(Rdn);
-
-					double distanceToLight = distance(Ron, lights[j]->light.position);
-
-					int isInShadow = checkShadow(Ron, Rdn, objects, distanceToLight, best_i);
-
-					//Looping over all objects
-					/*int k;
-					for (k=0; objects[k] != NULL; k++) {
-						//skip if the current object is the one we are getting the color for
-						if(objects[k] == objects[best_i]) continue;
-					
-						double lightT = -1;
-						switch(objects[k]->kind) {
-							case 0:
-							break;
-
-							case 1:
-								lightT = sphereIntersection(Ron, Rdn,
-								objects[k]->sphere.center,
-								objects[k]->sphere.radius);
-							break;
-
-							case 2:
-								lightT = planeIntersection(Ron, Rdn,
-								objects[k]->plane.position,
-								objects[k]->plane.normal);
-							break;
-
-							case 3:
-							break;
-							default:
-								fprintf(stderr,"Error: Cannot process object of kind %d\n",objects[k]->kind);
-								exit(1);
-						}
-						//check if object is in shadow
-						if(lightT > 0 && lightT < distanceToLight){
-							isInShadow = 1;
-							break;
-						}
-					}*/ //end of object loop
-
-					if(isInShadow == 0 && best_i >= 0){
-						double* N = malloc(sizeof(double)*3); //Normal to the intersection point
-						double* objectDiffuse; //Diffuse color of the object
-						double* objectSpecular; //Specular color of the object
-
-						//Getting normal and color vectors
-						if(objects[best_i]->kind == 1){
-							N[0] = Ron[0] - objects[best_i]->sphere.center[0];
-							N[1] = Ron[1] - objects[best_i]->sphere.center[1];
-							N[2] = Ron[2] - objects[best_i]->sphere.center[2];
-							objectDiffuse = objects[best_i]->sphere.diffuseColor;
-							objectSpecular = objects[best_i]->sphere.specularColor;
-						
-						}
-						else if(objects[best_i]->kind == 2){
-							N = objects[best_i]->plane.normal;
-							objectDiffuse = objects[best_i]->plane.diffuseColor;
-							objectSpecular = objects[best_i]->plane.specularColor;
-						
-						}
-						else{
-							fprintf(stderr, "Error: Cannot calculate lighting.");
-							exit(1);
-						}
-
-						double* V = Rd; //direction from intersection back to the camera (once inverted)
-						invert(V);
-						normalize(V);
-						normalize(N);
-						double* R = reflect(Rdn,N); //Reflected vector of the new ray direction about the light
-						normalize(R);
-
-						double fang = angular(lights[j], Rdn); //angular attenuation
-						double frad = radial(lights[j], distanceToLight); //radial attenuation
-						double* diff = diffuse(objectDiffuse, lights[j]->light.color, N, Rdn); //diffuse color
-						double* spec = specular(objectSpecular, lights[j]->light.color, Rdn, N, R, V); //specular color
-					
-						color[0] = color[0] + (fang*frad*(diff[0] + spec[0]));
-						color[1] = color[1] + (fang*frad*(diff[1] + spec[1]));
-						color[2] = color[2] + (fang*frad*(diff[2] + spec[2]));
-
-						free(N);
-						free(R);
-						free(diff);
-						free(spec);
-					}
-
-					free(Rdn);
-					free(Ron);
-				
-				}//End of light loop
-			}
+			double* color = recursiveRaytrace(Ro, Rd, objects, lights, 0);
 		
 			//Setting the color of the pixel to the color vector. Flips the y-axis
 			pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3] = (unsigned char) (clamp(color[0])*255);
