@@ -146,6 +146,7 @@ double* reflect (double* v, double* n){
 double* diffuse(double* diffColor, double* lightColor, double* N, double* L){
 	double* result = malloc(sizeof(double)*3);
 	double cosA = dot(N, L);
+	//printf("cosA: %lf, N %lf %lf %lf, L %lf %lf %lf\n", cosA, N[0],N[1],N[2],L[0],L[1],L[2]);
 	if(cosA > 0){
 		result[0] = diffColor[0] * lightColor[0] * cosA;
 		result[1] = diffColor[1] * lightColor[1] * cosA;
@@ -491,7 +492,7 @@ int checkShadow(double* Ro, double* Rd, Object** objects, double distanceToLight
 }
 
 double* recursiveRaytrace(double* Ro, double* Rd, Object** objects, Object** lights, int recurseNo){
-	double* color = malloc(sizeof(unsigned char)*3); //Initialized to black. Is set when an intersection is found
+	double* color = malloc(sizeof(double)*3); //Initialized to black. Is set when an intersection is found
 	recurseNo++;
 	color[0] = 0;
 	color[1] = 0;
@@ -504,27 +505,32 @@ double* recursiveRaytrace(double* Ro, double* Rd, Object** objects, Object** lig
 	int best_i = -1;
 
 	shoot(Ro, Rd, objects, &best_t, &best_i);
-//printf("shot, t = %lf, recurse = %d\n", best_t, recurseNo);
 	if(best_i > -1 && best_t > 0 && best_t < INFINITY){
+
+		double Ron[3];// = malloc(sizeof(double)*3); //New ray origin
+		Ron[0] = (best_t*Rd[0] + Ro[0]) + 0.000001;
+		Ron[1] = (best_t*Rd[1] + Ro[1]) + 0.000001;
+		Ron[2] = (best_t*Rd[2] + Ro[2]) + 0.000001;
+
+		double* V = Rd; //direction from intersection back to the camera (once inverted). Used for specular light calculations.
+		invert(V);
+		normalize(V);
+		
 		//Loop over all lights looking for objects in the way
 		int j;
-		for(j=0; lights[j] != NULL; j++){
-
-			double* Ron = malloc(sizeof(double)*3); //New ray origin
-			double* Rdn = malloc(sizeof(double)*3); //New ray direction
-
-			int n;
-			for(n=0; n<3; n++){
-				Ron[n] = (best_t-0.000000001)*Rd[n] + Ro[n];
-				Rdn[n] = lights[j]->light.position[n] - Ron[n];
-			}
-
+		for(j=0; lights[j]!=NULL; j++){
+		
+			double Rdn[3]; //Ray direction from the object intersection towards the camera
+			Rdn[0] = lights[j]->light.position[0] - Ron[0];
+			Rdn[1] = lights[j]->light.position[1] - Ron[1];
+			Rdn[2] = lights[j]->light.position[2] - Ron[2];
+				
 			//normalize(Ron);  <-- here was the cause of a lot of pain. Pro Tip: Don't normalize points.
 			normalize(Rdn);
 			double distanceToLight = distance(Ron, lights[j]->light.position);
 			int isInShadow = checkShadow(Ron, Rdn, objects, distanceToLight, best_i);
 			
-			if(isInShadow == 0 && best_i >= 0){
+			if(isInShadow == 0){
 				double* N = malloc(sizeof(double)*3); //Normal to the intersection point
 				double* objectDiffuse; //Diffuse color of the object
 				double* objectSpecular; //Specular color of the object
@@ -557,24 +563,19 @@ double* recursiveRaytrace(double* Ro, double* Rd, Object** objects, Object** lig
 					fprintf(stderr, "Error: Cannot calculate lighting.");
 					exit(1);
 				}
-
-				double* V = Rd; //direction from intersection back to the camera (once inverted)
-				invert(V);
-				normalize(V);
+				
 				normalize(N);
 				double* R = reflect(Rdn,N); //Reflected vector of the new ray direction about the light
 				normalize(R);
-
 				double fang = angular(lights[j], Rdn); //angular attenuation
 				double frad = radial(lights[j], distanceToLight); //radial attenuation
 				double* diff = diffuse(objectDiffuse, lights[j]->light.color, N, Rdn); //diffuse color
 				double* spec = specular(objectSpecular, lights[j]->light.color, Rdn, N, R, V); //specular color
-			
+				
 				color[0] = color[0] + (fang*frad*(diff[0] + spec[0]));
 				color[1] = color[1] + (fang*frad*(diff[1] + spec[1]));
 				color[2] = color[2] + (fang*frad*(diff[2] + spec[2]));
 
-				//printf("Recurse: %d\n", reflectivity);
 				if(reflectivity > 0){
 					double* reflectedColor = recursiveRaytrace(Ron, R, objects, lights, recurseNo);
 					//printf("color: %lf %lf %lf\n", reflectedColor[0], reflectedColor[1], reflectedColor[2]);
@@ -602,7 +603,6 @@ double* recursiveRaytrace(double* Ro, double* Rd, Object** objects, Object** lig
 					color[1] = color[1] + refractedColor[1]*refractivity;
 					color[2] = color[2] + refractedColor[2]*refractivity;
 				}*/
-					//double* refractedColor = recursiveRaytrace(
 
 				free(N);
 				free(R);
@@ -610,9 +610,6 @@ double* recursiveRaytrace(double* Ro, double* Rd, Object** objects, Object** lig
 				free(spec);
 				
 			}
-
-			free(Rdn);
-			free(Ron);
 		}//End of light loop
 	}
 	return color;
@@ -664,6 +661,10 @@ int main(int argc, char** argv) {
 
 	//Using the parser to read the scene, store all objects in the objects array and return the number of objects
 	read_scene(objects, lights, argv[3]);
+
+	/*int q;
+	for(q=0; q<2; q++){
+	printf("light %d, color: %lf %lf %lf, Theta: %lf, direction: %lf %lf %lf, a0: %lf, ra0: %lf,ra1: %lf,ra2: %lf, position %lf %lf %lf\n", q, lights[q]->light.color[0], lights[q]->light.color[1], lights[q]->light.color[2], lights[q]->light.theta, lights[q]->light.direction[0], lights[q]->light.direction[1], lights[q]->light.direction[2], lights[q]->light.angularA0, lights[q]->light.radial[0],lights[q]->light.radial[1],lights[q]->light.radial[2], lights[q]->light.position[0],lights[q]->light.position[1],lights[q]->light.position[2]);}*/
 	
 	double cx = 0; //Center of the x pixel
 	double cy = 0; //Center of the y pixel
