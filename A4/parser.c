@@ -1,6 +1,6 @@
 /**
  * Author: Dr James Palmer, Jayden Urch
- * Date: 10/04/2016
+ * Date: 11/14/2016
  * Student No: 5388406 / jsu22
  *
  * This program can be used to read in a JSON scene
@@ -10,6 +10,19 @@
 #include "parser.h"
 
 int line = 1;
+
+//Clamp function defined here and in raytrace.h
+//to decrease coupling.
+double pClamp(double d){
+	if(d < 0.0){
+		return 0.0;
+	}
+	else if(d > 1.0){
+		return 1.0;
+	}
+
+	return d;
+}
 
 // next_c() wraps the getc() function and provides error checking and line
 // number maintenance
@@ -95,7 +108,6 @@ double next_number(FILE* json) {
 	char* temp;
 	
 	fscanf(json, "%lf", &value);
-	// TODO: Error check this..
 	return value;
 }
 
@@ -170,6 +182,10 @@ Object* read_sphere(FILE* filename) {
 	int sColorCheck = 0;
 	int radiusCheck = 0;
 	int positionCheck = 0;
+
+	object->sphere.reflectivity = 0.0;
+	object->sphere.refractivity = 0.0;
+	object->sphere.ior = 1.0;
 	
 	while (1) {
 	// , }
@@ -205,6 +221,12 @@ Object* read_sphere(FILE* filename) {
 				object->sphere.center[1] = vector[1];
 				object->sphere.center[2] = vector[2];
 				positionCheck = 1;
+			} else if (strcmp(key, "refractivity") == 0){
+				object->sphere.refractivity = pClamp(next_number(filename));
+			} else if (strcmp(key, "reflectivity") == 0){
+				object->sphere.reflectivity = pClamp(next_number(filename));
+			} else if (strcmp(key, "ior") == 0){
+				object->sphere.ior = next_number(filename);
 			} else {
 				fprintf(stderr, "Error: Unknown property, \"%s\", on line %d.\n",
 				key, line);
@@ -234,6 +256,10 @@ Object* read_plane(FILE* filename) {
 	int dColorCheck = 0;
 	int positionCheck = 0;
 	int normalCheck = 0;
+
+	object->plane.reflectivity = 0.0;
+	object->plane.refractivity = 0.0;
+	object->plane.ior = 1.0;
 
 	while (1) {
 		c = next_c(filename);
@@ -271,6 +297,12 @@ Object* read_plane(FILE* filename) {
 				object->plane.normal[1] = vector[1];
 				object->plane.normal[2] = vector[2];
 				normalCheck = 1;
+			} else if (strcmp(key, "refractivity") == 0){
+				object->plane.refractivity = pClamp(next_number(filename));
+			} else if (strcmp(key, "reflectivity") == 0){
+				object->plane.reflectivity = pClamp(next_number(filename));
+			} else if (strcmp(key, "ior") == 0){
+				object->plane.ior = next_number(filename);
 			} else {
 				fprintf(stderr, "Error: Unknown property, \"%s\", on line %d.\n",
 				key, line);
@@ -307,10 +339,6 @@ Object* read_light(FILE* filename) {
 	object->light.radial[1] = 0;
 	object->light.radial[2] = 0;
 
-	//initialize light direction TODO:remove? mistake in example .json?
-	/*object->light.direction[0] = 0;
-	object->light.direction[1] = 0;
-	object->light.direction[2] = 0;*/
 
 	while (1) {
 		c = next_c(filename);

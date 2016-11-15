@@ -8,7 +8,7 @@
 #include "object.h"
 
 
-
+double pClamp(double d);
 int next_c(FILE* json);
 void expect_c(FILE* json, int d);
 int check_c(FILE* json, int d);

@@ -54,10 +54,20 @@ static inline void invert(double* v){
 	v[2] *= -1;
 }
 
+//TODO: maybe not use
 static inline void vector3Addition(double* v1, double* v2){
 	v1[0] += v2[0];
 	v1[1] += v2[1];
 	v1[2] += v2[2];
+}
+
+double* cross(double* v1, double* v2){
+	double* result = malloc(sizeof(double)*3);
+	result[0] = (v1[1]*v2[2] - v1[2]*v2[1]);
+	result[0] = (v1[2]*v2[0] - v1[0]*v2[2]);
+	result[0] = (v1[0]*v2[1] - v1[1]*v2[0]);
+
+	return result;
 }
 
 /* Clamps the given double to values ranging from 0.0 to 1.0
@@ -481,17 +491,20 @@ int checkShadow(double* Ro, double* Rd, Object** objects, double distanceToLight
 }
 
 double* recursiveRaytrace(double* Ro, double* Rd, Object** objects, Object** lights, int recurseNo){
-
+	double* color = malloc(sizeof(unsigned char)*3); //Initialized to black. Is set when an intersection is found
+	recurseNo++;
+	color[0] = 0;
+	color[1] = 0;
+	color[2] = 0;
+	if(recurseNo >= 7){
+		return color;
+	}
+		
 	double best_t = INFINITY; //Used to find the closest intersection
 	int best_i = -1;
 
 	shoot(Ro, Rd, objects, &best_t, &best_i);
-
-	double* color = malloc(sizeof(unsigned char)*3); //Initialized to black. Is set when an intersection is found
-	color[0] = 0;
-	color[1] = 0;
-	color[2] = 0;
-
+//printf("shot, t = %lf, recurse = %d\n", best_t, recurseNo);
 	if(best_i > -1 && best_t > 0 && best_t < INFINITY){
 		//Loop over all lights looking for objects in the way
 		int j;
@@ -502,7 +515,7 @@ double* recursiveRaytrace(double* Ro, double* Rd, Object** objects, Object** lig
 
 			int n;
 			for(n=0; n<3; n++){
-				Ron[n] = best_t*Rd[n] + Ro[n];
+				Ron[n] = (best_t-0.000000001)*Rd[n] + Ro[n];
 				Rdn[n] = lights[j]->light.position[n] - Ron[n];
 			}
 
@@ -515,6 +528,9 @@ double* recursiveRaytrace(double* Ro, double* Rd, Object** objects, Object** lig
 				double* N = malloc(sizeof(double)*3); //Normal to the intersection point
 				double* objectDiffuse; //Diffuse color of the object
 				double* objectSpecular; //Specular color of the object
+				double reflectivity;
+				double refractivity;
+				double ior;
 
 				//Getting normal and color vectors
 				if(objects[best_i]->kind == 1){
@@ -523,12 +539,18 @@ double* recursiveRaytrace(double* Ro, double* Rd, Object** objects, Object** lig
 					N[2] = Ron[2] - objects[best_i]->sphere.center[2];
 					objectDiffuse = objects[best_i]->sphere.diffuseColor;
 					objectSpecular = objects[best_i]->sphere.specularColor;
+					reflectivity = objects[best_i]->sphere.reflectivity;
+					refractivity = objects[best_i]->sphere.refractivity;
+					ior = objects[best_i]->sphere.ior;
 				
 				}
 				else if(objects[best_i]->kind == 2){
 					N = objects[best_i]->plane.normal;
 					objectDiffuse = objects[best_i]->plane.diffuseColor;
 					objectSpecular = objects[best_i]->plane.specularColor;
+					reflectivity = objects[best_i]->plane.reflectivity;
+					refractivity = objects[best_i]->plane.refractivity;
+					ior = objects[best_i]->plane.ior;
 				
 				}
 				else{
@@ -552,15 +574,45 @@ double* recursiveRaytrace(double* Ro, double* Rd, Object** objects, Object** lig
 				color[1] = color[1] + (fang*frad*(diff[1] + spec[1]));
 				color[2] = color[2] + (fang*frad*(diff[2] + spec[2]));
 
+				//printf("Recurse: %d\n", reflectivity);
+				if(reflectivity > 0){
+					double* reflectedColor = recursiveRaytrace(Ron, R, objects, lights, recurseNo);
+					//printf("color: %lf %lf %lf\n", reflectedColor[0], reflectedColor[1], reflectedColor[2]);
+					color[0] = color[0] + reflectedColor[0]*reflectivity;
+					color[1] = color[1] + reflectedColor[1]*reflectivity;
+					color[2] = color[2] + reflectedColor[2]*reflectivity;
+					//printf("Recursed: %d\n", recurseNo);
+				}
+
+				/*if(refractivity > 0){
+					double* a = cross(N,Rd);
+					normalize(a);
+					double* b = cross(a,N);
+					double sinPhi = AMBIENT_IOR/ior;
+					double cosPhi = sqrt(1-sqr(sinPhi));
+					double* refractedRay = malloc(sizeof(double)*3);
+
+					refractedRay[0] = (-N[0])*cosPhi + b[0]*sinPhi;
+					refractedRay[1] = (-N[1])*cosPhi + b[1]*sinPhi;
+					refractedRay[2] = (-N[2])*cosPhi + b[2]*sinPhi;
+
+					double* refractedColor = recursiveRaytrace(Ron, refractedRay, objects, lights, recurseNo);
+
+					color[0] = color[0] + refractedColor[0]*refractivity;
+					color[1] = color[1] + refractedColor[1]*refractivity;
+					color[2] = color[2] + refractedColor[2]*refractivity;
+				}*/
+					//double* refractedColor = recursiveRaytrace(
+
 				free(N);
 				free(R);
 				free(diff);
 				free(spec);
+				
 			}
 
 			free(Rdn);
 			free(Ron);
-		
 		}//End of light loop
 	}
 	return color;
@@ -650,8 +702,9 @@ int main(int argc, char** argv) {
 			// Rd = normalize(P - Ro)
 			double Rd[3] = {cx - (camWidth/2) + pixwidth * (x + 0.5), cy - (camHeight/2) + pixheight * (y + 0.5), 1};
 			normalize(Rd);
-
+//printf("x: %d y %d\n", x, y);
 			double* color = recursiveRaytrace(Ro, Rd, objects, lights, 0);
+			
 		
 			//Setting the color of the pixel to the color vector. Flips the y-axis
 			pixmap[imgHeight*imgHeight*3-(y+1)*imgHeight*3 + x*3] = (unsigned char) (clamp(color[0])*255);

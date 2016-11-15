@@ -5,6 +5,8 @@
 #include "parser.h"
 #include "ppmrw.h"
 
+#define AMBIENT_IOR 1.0 //Index of refraction for the external medium
+
 static inline double sqr(double v);
 static inline void normalize(double* v);
 static inline void invert(double* v);
