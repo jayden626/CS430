@@ -16,7 +16,7 @@ Student No: 5388406 / jsu22
 
 ## Project 2 - Raycaster
 
-This program can be used to read in a JSON scene, use raycasting techniques to build an image, and write the image to a P6 PPM file. A valid input JSON file is provided as well as the corresponding output. Test image is size 100 x 100
+This program can be used to read in a JSON scene, uses raycasting techniques to build an image, and write the image to a P6 PPM file. A valid input JSON file is provided as well as the corresponding output. Test image is size 100 x 100
 
 Correct format is raycast width height input output
 * Ex: raycast 100 100 input.json output.ppm
@@ -25,13 +25,24 @@ Author: Jayden Urch
 Date: 10/04/2016
 Student No: 5388406 / jsu22
 
-## Project 3 - Raytracer
+## Project 3 - Raycaster
 
-This program can be used to read in a JSON scene, use raytracing techniques to build an image, and write the image to a P6 PPM file. A valid input JSON file is provided as well as the corresponding output. Test image is size 1000 x 1000
+This program can be used to read in a JSON scene, uses raycasting techniques to build an image, and write the image to a P6 PPM file. A valid input JSON file is provided as well as the corresponding output. Test image is size 1000 x 1000
 
 Correct format is raycast width height input output
 * Ex: raycast 1000 1000 input.json output.ppm
 
 Author: Jayden Urch
 Date: 10/20/2016
+Student No: 5388406 / jsu22
+
+## Project 4 - Raytracer
+
+This program can be used to read in a JSON scene, uses recursive raytracing techniques (including reflectivity and refractivity) to build an image, and write the image to a P6 PPM file. A valid input JSON file is provided as well as the corresponding output. Test image is size 1000 x 1000
+
+Correct format is raycast width height input output
+* Ex: raycast 1000 1000 input.json output.ppm
+
+Author: Jayden Urch
+Date: 11/15/2016
 Student No: 5388406 / jsu22

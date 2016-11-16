@@ -1,7 +1,7 @@
-#ifndef URCH_A3_OBJECT
-#define URCH_A3_OBJECT
+#ifndef URCH_A4_OBJECT
+#define URCH_A4_OBJECT
 
-// Plymorphism in C
+// Polymorphism in C
 
 typedef struct {
 	int kind; // 0 = camera, 1 = sphere, 2 = plane, 3 = light

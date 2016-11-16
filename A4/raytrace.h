@@ -1,5 +1,5 @@
-#ifndef URCH_A3_RAYTRACER
-#define URCH_A3_RAYTRACER
+#ifndef URCH_A4_RAYTRACER
+#define URCH_A4_RAYTRACER
 
 #include <math.h>
 #include "parser.h"

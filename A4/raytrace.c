@@ -1,6 +1,6 @@
 /**
  * Author: Jayden Urch
- * Date: 10/04/2016
+ * Date: 11/15/2016
  * Student No: 5388406 / jsu22
  *
  * This program can be used to read in a JSON scene,
@@ -52,22 +52,6 @@ static inline void invert(double* v){
 	v[0] *= -1;
 	v[1] *= -1;
 	v[2] *= -1;
-}
-
-//TODO: maybe not use
-static inline void vector3Addition(double* v1, double* v2){
-	v1[0] += v2[0];
-	v1[1] += v2[1];
-	v1[2] += v2[2];
-}
-
-double* cross(double* v1, double* v2){
-	double* result = malloc(sizeof(double)*3);
-	result[0] = (v1[1]*v2[2] - v1[2]*v2[1]);
-	result[1] = (v1[2]*v2[0] - v1[0]*v2[2]);
-	result[2] = (v1[0]*v2[1] - v1[1]*v2[0]);
-
-	return result;
 }
 
 /* Clamps the given double to values ranging from 0.0 to 1.0
@@ -146,7 +130,6 @@ double* reflect (double* v, double* n){
 double* diffuse(double* diffColor, double* lightColor, double* N, double* L){
 	double* result = malloc(sizeof(double)*3);
 	double cosA = dot(N, L);
-	//printf("cosA: %lf, N %lf %lf %lf, L %lf %lf %lf\n", cosA, N[0],N[1],N[2],L[0],L[1],L[2]);
 	if(cosA > 0){
 		result[0] = diffColor[0] * lightColor[0] * cosA;
 		result[1] = diffColor[1] * lightColor[1] * cosA;
@@ -505,13 +488,13 @@ double* recursiveRaytrace(double* Ro, double* Rd, Object** objects, Object** lig
 	double best_t = INFINITY; //Used to find the closest intersection
 	int best_i = -1;
 
-	shoot(Ro, Rd, objects, &best_t, &best_i, prev_i);
+	shoot(Ro, Rd, objects, &best_t, &best_i, prev_i); //Finds the best t and intersected object
 	if(best_i > -1 && best_t > 0 && best_t < INFINITY){
 
-		double Ron[3];// = malloc(sizeof(double)*3); //New ray origin
-		Ron[0] = (best_t*Rd[0] + Ro[0]);// + 0.000001;
-		Ron[1] = (best_t*Rd[1] + Ro[1]);// + 0.000001;
-		Ron[2] = (best_t*Rd[2] + Ro[2]);// + 0.000001;
+		double Ron[3];//New ray origin (point of intersection
+		Ron[0] = (best_t*Rd[0] + Ro[0]);
+		Ron[1] = (best_t*Rd[1] + Ro[1]);
+		Ron[2] = (best_t*Rd[2] + Ro[2]);
 
 		double V[3];//direction from intersection back to the camera (once inverted). Used for specular light calculations.
 		V[0] = Rd[0];
@@ -538,11 +521,11 @@ double* recursiveRaytrace(double* Ro, double* Rd, Object** objects, Object** lig
 				double* N = malloc(sizeof(double)*3); //Normal to the intersection point
 				double* objectDiffuse; //Diffuse color of the object
 				double* objectSpecular; //Specular color of the object
-				double reflectivity;
-				double refractivity;
-				double ior;
+				double reflectivity; //of the object
+				double refractivity; //of the object
+				double ior; //of the object
 
-				//Getting normal and color vectors
+				//Getting normal and color vectors, reflectivity, refractivity and ior
 				if(objects[best_i]->kind == 1){
 					N[0] = Ron[0] - objects[best_i]->sphere.center[0];
 					N[1] = Ron[1] - objects[best_i]->sphere.center[1];
@@ -599,15 +582,9 @@ double* recursiveRaytrace(double* Ro, double* Rd, Object** objects, Object** lig
 					refractedRay[2] = (n*Rd[2]) + (n*c1-sqrt(c2))*N[2];
 					
 					double* refractedColor = recursiveRaytrace(Ron, refractedRay, objects, lights, recurseNo, best_i);
-					//if(refractedColor[0] != 0.0 || refractedColor[1] != 0.0 || refractedColor[2] != 0.0){
-					//printf("a: %lf %lf %lf, b: %lf %lf %lf, sin: %lf, cos: %lf, original: %lf %lf %lf, ray: %lf %lf %lf, color: %lf %lf %lf, i: %d\n", a[0],a[1],a[2], b[0],b[1],b[2], sinPhi, cosPhi,Rdn[0],Rdn[1],Rdn[2], refractedRay[0], refractedRay[1], refractedRay[2], refractedColor[0], refractedColor[1], refractedColor[2], best_i);
-					//printf("n: %lf, c1: %lf, c2: %lf, N: %lf %lf %lf, Rd: %lf %lf %lf, newRd: %lf %lf %lf\n", n, c1, c2, N[0], N[1], N[2], Rd[0], Rd[1], Rd[2], refractedRay[0], refractedRay[1], refractedRay[2]);
-
-					//printf("before: %lf %lf %lf\n", color[0],color[1],color[2]);
 					color[0] = color[0] + refractedColor[0]*refractivity;
 					color[1] = color[1] + refractedColor[1]*refractivity;
 					color[2] = color[2] + refractedColor[2]*refractivity;
-					//printf("after: %lf %lf %lf\n\n", color[0],color[1],color[2]);}
 				}
 
 				free(N);
@@ -667,10 +644,6 @@ int main(int argc, char** argv) {
 
 	//Using the parser to read the scene, store all objects in the objects array and return the number of objects
 	read_scene(objects, lights, argv[3]);
-
-	/*int q;
-	for(q=0; q<2; q++){
-	printf("light %d, color: %lf %lf %lf, Theta: %lf, direction: %lf %lf %lf, a0: %lf, ra0: %lf,ra1: %lf,ra2: %lf, position %lf %lf %lf\n", q, lights[q]->light.color[0], lights[q]->light.color[1], lights[q]->light.color[2], lights[q]->light.theta, lights[q]->light.direction[0], lights[q]->light.direction[1], lights[q]->light.direction[2], lights[q]->light.angularA0, lights[q]->light.radial[0],lights[q]->light.radial[1],lights[q]->light.radial[2], lights[q]->light.position[0],lights[q]->light.position[1],lights[q]->light.position[2]);}*/
 	
 	double cx = 0; //Center of the x pixel
 	double cy = 0; //Center of the y pixel
@@ -709,7 +682,6 @@ int main(int argc, char** argv) {
 			// Rd = normalize(P - Ro)
 			double Rd[3] = {cx - (camWidth/2) + pixwidth * (x + 0.5), cy - (camHeight/2) + pixheight * (y + 0.5), 1};
 			normalize(Rd);
-//printf("x: %d y %d\n", x, y);
 			double* color = recursiveRaytrace(Ro, Rd, objects, lights, 0, -1);
 			
 		
