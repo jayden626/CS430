@@ -22,7 +22,7 @@ double angular(Object* light, double* Rd);
 double cylinderIntersection(double* Ro, double* Rd, double* C, double r);
 double sphereIntersection(double* Ro, double* Rd, double* Cs, double r);
 double planeIntersection(double* Ro, double* Rd, double* point, double* N);
-void shoot(double* Ro, double* Rd, Object** objects, double* best_t, int* best_i);
+void shoot(double* Ro, double* Rd, Object** objects, double* best_t, int* best_i, int prev_i);
 int checkShadow(double* Ro, double* Rd, Object** objects, double distanceToLight, int best_i);
 
 #endif

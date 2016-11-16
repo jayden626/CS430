@@ -64,8 +64,8 @@ static inline void vector3Addition(double* v1, double* v2){
 double* cross(double* v1, double* v2){
 	double* result = malloc(sizeof(double)*3);
 	result[0] = (v1[1]*v2[2] - v1[2]*v2[1]);
-	result[0] = (v1[2]*v2[0] - v1[0]*v2[2]);
-	result[0] = (v1[0]*v2[1] - v1[1]*v2[0]);
+	result[1] = (v1[2]*v2[0] - v1[0]*v2[2]);
+	result[2] = (v1[0]*v2[1] - v1[1]*v2[0]);
 
 	return result;
 }
@@ -397,12 +397,13 @@ double planeIntersection(double* Ro, double* Rd, double* point, double* N){
  *
  *					If no intersection, best_t will equal INFINITY and best_i will equal -1
  */
-void shoot(double* Ro, double* Rd, Object** objects, double* best_t, int* best_i){
+void shoot(double* Ro, double* Rd, Object** objects, double* best_t, int* best_i, int prev_i){
 	*best_t = INFINITY;
 	*best_i = -1;
 
 	int i;
 	for (i=0; objects[i] != NULL; i += 1) {
+		if(i == prev_i) continue;
 		double t = 0;
 		switch(objects[i]->kind) {
 			case 0:
@@ -491,7 +492,7 @@ int checkShadow(double* Ro, double* Rd, Object** objects, double distanceToLight
 	return 0;
 }
 
-double* recursiveRaytrace(double* Ro, double* Rd, Object** objects, Object** lights, int recurseNo){
+double* recursiveRaytrace(double* Ro, double* Rd, Object** objects, Object** lights, int recurseNo, int prev_i){
 	double* color = malloc(sizeof(double)*3); //Initialized to black. Is set when an intersection is found
 	recurseNo++;
 	color[0] = 0;
@@ -504,15 +505,18 @@ double* recursiveRaytrace(double* Ro, double* Rd, Object** objects, Object** lig
 	double best_t = INFINITY; //Used to find the closest intersection
 	int best_i = -1;
 
-	shoot(Ro, Rd, objects, &best_t, &best_i);
+	shoot(Ro, Rd, objects, &best_t, &best_i, prev_i);
 	if(best_i > -1 && best_t > 0 && best_t < INFINITY){
 
 		double Ron[3];// = malloc(sizeof(double)*3); //New ray origin
-		Ron[0] = (best_t*Rd[0] + Ro[0]) + 0.000001;
-		Ron[1] = (best_t*Rd[1] + Ro[1]) + 0.000001;
-		Ron[2] = (best_t*Rd[2] + Ro[2]) + 0.000001;
+		Ron[0] = (best_t*Rd[0] + Ro[0]);// + 0.000001;
+		Ron[1] = (best_t*Rd[1] + Ro[1]);// + 0.000001;
+		Ron[2] = (best_t*Rd[2] + Ro[2]);// + 0.000001;
 
-		double* V = Rd; //direction from intersection back to the camera (once inverted). Used for specular light calculations.
+		double V[3];//direction from intersection back to the camera (once inverted). Used for specular light calculations.
+		V[0] = Rd[0];
+		V[1] = Rd[1];
+		V[2] = Rd[2];
 		invert(V);
 		normalize(V);
 		
@@ -577,32 +581,34 @@ double* recursiveRaytrace(double* Ro, double* Rd, Object** objects, Object** lig
 				color[2] = color[2] + (fang*frad*(diff[2] + spec[2]));
 
 				if(reflectivity > 0){
-					double* reflectedColor = recursiveRaytrace(Ron, R, objects, lights, recurseNo);
-					//printf("color: %lf %lf %lf\n", reflectedColor[0], reflectedColor[1], reflectedColor[2]);
+					double* reflectedColor = recursiveRaytrace(Ron, R, objects, lights, recurseNo, best_i);
 					color[0] = color[0] + reflectedColor[0]*reflectivity;
 					color[1] = color[1] + reflectedColor[1]*reflectivity;
 					color[2] = color[2] + reflectedColor[2]*reflectivity;
-					//printf("Recursed: %d\n", recurseNo);
 				}
 
-				/*if(refractivity > 0){
-					double* a = cross(N,Rd);
-					normalize(a);
-					double* b = cross(a,N);
-					double sinPhi = AMBIENT_IOR/ior;
-					double cosPhi = sqrt(1-sqr(sinPhi));
+				if(refractivity > 0){
+
+					double n = AMBIENT_IOR/ior;
+					double c1 = -dot(N,Rd);
+					double c2 = 1-n*n*(1-c1*c1);
 					double* refractedRay = malloc(sizeof(double)*3);
 
-					refractedRay[0] = (-N[0])*cosPhi + b[0]*sinPhi;
-					refractedRay[1] = (-N[1])*cosPhi + b[1]*sinPhi;
-					refractedRay[2] = (-N[2])*cosPhi + b[2]*sinPhi;
+					refractedRay[0] = (n*Rd[0]) + (n*c1-sqrt(c2))*N[0];
+					refractedRay[1] = (n*Rd[1]) + (n*c1-sqrt(c2))*N[1];
+					refractedRay[2] = (n*Rd[2]) + (n*c1-sqrt(c2))*N[2];
+					
+					double* refractedColor = recursiveRaytrace(Ron, refractedRay, objects, lights, recurseNo, best_i);
+					//if(refractedColor[0] != 0.0 || refractedColor[1] != 0.0 || refractedColor[2] != 0.0){
+					//printf("a: %lf %lf %lf, b: %lf %lf %lf, sin: %lf, cos: %lf, original: %lf %lf %lf, ray: %lf %lf %lf, color: %lf %lf %lf, i: %d\n", a[0],a[1],a[2], b[0],b[1],b[2], sinPhi, cosPhi,Rdn[0],Rdn[1],Rdn[2], refractedRay[0], refractedRay[1], refractedRay[2], refractedColor[0], refractedColor[1], refractedColor[2], best_i);
+					//printf("n: %lf, c1: %lf, c2: %lf, N: %lf %lf %lf, Rd: %lf %lf %lf, newRd: %lf %lf %lf\n", n, c1, c2, N[0], N[1], N[2], Rd[0], Rd[1], Rd[2], refractedRay[0], refractedRay[1], refractedRay[2]);
 
-					double* refractedColor = recursiveRaytrace(Ron, refractedRay, objects, lights, recurseNo);
-
+					//printf("before: %lf %lf %lf\n", color[0],color[1],color[2]);
 					color[0] = color[0] + refractedColor[0]*refractivity;
 					color[1] = color[1] + refractedColor[1]*refractivity;
 					color[2] = color[2] + refractedColor[2]*refractivity;
-				}*/
+					//printf("after: %lf %lf %lf\n\n", color[0],color[1],color[2]);}
+				}
 
 				free(N);
 				free(R);
@@ -704,7 +710,7 @@ int main(int argc, char** argv) {
 			double Rd[3] = {cx - (camWidth/2) + pixwidth * (x + 0.5), cy - (camHeight/2) + pixheight * (y + 0.5), 1};
 			normalize(Rd);
 //printf("x: %d y %d\n", x, y);
-			double* color = recursiveRaytrace(Ro, Rd, objects, lights, 0);
+			double* color = recursiveRaytrace(Ro, Rd, objects, lights, 0, -1);
 			
 		
 			//Setting the color of the pixel to the color vector. Flips the y-axis
